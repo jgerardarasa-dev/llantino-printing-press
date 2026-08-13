@@ -3,9 +3,9 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–2 are built (Foundation, Data layer, CRM).
-Everything else in `SPEC.md` §10 is intentionally not started yet — each
-remaining milestone (Pricing engine, Quotations, Job Orders, Tasks +
+**Status:** Milestones 0–3 are built (Foundation, Data layer, CRM,
+Pricing engine). Everything else in `SPEC.md` §10 is intentionally not
+started yet — each remaining milestone (Quotations, Job Orders, Tasks +
 Calendar, HR, Accounting, Dashboards, Polish) is its own future pass. Nav
 links to those areas render a "coming in Milestone N" screen rather than
 a broken page.
@@ -78,7 +78,9 @@ src/
       clients/             list + 360 view (contacts, interactions, JOs,
                             quotations/invoices placeholders) — Milestone 2
       leads/                kanban pipeline by stage — Milestone 2
-      quotations/ job-orders/ materials/ deliveries/
+      materials/             materials / process rates / box specs admin
+                              CRUD, tabbed — Milestone 3
+      quotations/ job-orders/ deliveries/
       tasks/ calendar/ hr/* accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
@@ -94,8 +96,11 @@ src/
     migrate.ts               migration runner (pnpm db:migrate)
   lib/
     supabase/                browser / server / admin / middleware clients
-    auth/                    getCurrentUser()
-    actions/                 Server Actions (auth so far)
+    auth/                    getCurrentUser(), assertRole() permission guard
+    actions/                 Server Actions (auth, CRM, pricing admin)
+    pricing/                 computeQuote + Vitest suite, quantity tiers,
+                              the rough ups-per-sheet suggestion helper
+                              (Milestone 3 — pure functions, no DB access)
     constants/roles.ts        role enum, labels, default routes
     validation/entities.ts    Zod schema per entity (drizzle-zod derived)
 scripts/
@@ -135,3 +140,22 @@ scripts/
   list is job_orders/quotations/invoices only (§5, §11); clients/leads/
   contacts/interactions are "encouraged to as well" but out of scope for
   now to keep Milestone 2 focused.
+- **The pricing engine (`src/lib/pricing/compute-quote.ts`) does use
+  JS floating-point — deliberately, once per line, always rounded back
+  to an integer immediately.** "No float arithmetic" targets storage and
+  running totals; percentages (spoilage, overhead, markup, VAT) are
+  inherently fractional and JS has no fixed-point type, so `amount * pct
+  / 100` as a double followed by a single `Math.round` is what every
+  real money engine does. Every function takes integer centavos in and
+  returns integer centavos out — see the comment at the top of
+  `rounding.ts`.
+- **`computeQuote` costs `stripping` unconditionally whenever the rate
+  exists** (like gluing/packing), not as an opt-in `finishing[]` pick —
+  in real production, stripping waste off a die-cut sheet isn't optional
+  the way spot UV or foil stamping are. The box spec builder's finishing
+  checklist excludes it (and every other reserved key) for the same
+  reason.
+- **Process rate `key` is immutable after creation** — it's what
+  `box_specs.finishing[]` and `computeQuote`'s rate lookups reference.
+  The edit form shows it read-only rather than allowing a rename that
+  would silently break existing box specs.

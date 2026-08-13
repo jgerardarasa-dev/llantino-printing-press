@@ -5,6 +5,14 @@ import type { CurrentUser } from "@/lib/auth/get-current-user";
 export const CRM_OWNER_ROLES: UserRole[] = ["admin", "management", "sales"];
 /** Mirrors public.is_commercial_role() — read access to CRM/pricing data. */
 export const COMMERCIAL_ROLES: UserRole[] = ["admin", "management", "sales", "accounting"];
+/**
+ * Master pricing (materials, process rates) — admin only. SPEC §4:
+ * "management ... cannot edit master pricing." Mirrors
+ * materials_admin_write / process_rates_admin_write RLS policies.
+ */
+export const PRICING_ADMIN_ROLES: UserRole[] = ["admin"];
+/** Box specs: commercial roles plus production (mirrors box_specs_write RLS). */
+export const BOX_SPEC_ROLES: UserRole[] = ["admin", "management", "sales", "accounting", "production"];
 
 export class ForbiddenError extends Error {
   constructor(message = "You don't have permission to do that.") {
