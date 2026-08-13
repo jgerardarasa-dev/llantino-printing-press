@@ -95,6 +95,14 @@ returns boolean language sql stable as $$
   select public.current_user_role() in ('admin', 'management', 'sales', 'accounting')
 $$;
 
+-- CRM owners: SPEC §4 gives clients/leads/CRM write access to sales
+-- (plus admin/management), not accounting — accounting can still *read*
+-- clients via is_commercial_role() (it needs to know who it's invoicing).
+create or replace function public.is_crm_owner_role()
+returns boolean language sql stable as $$
+  select public.current_user_role() in ('admin', 'management', 'sales')
+$$;
+
 -- HR/financial roles allowed to see payroll-adjacent data.
 create or replace function public.is_hr_or_finance_role()
 returns boolean language sql stable as $$
@@ -219,34 +227,34 @@ alter table "interactions" enable row level security;
 create policy "clients_select_commercial" on "clients"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "clients_write_commercial" on "clients"
+create policy "clients_write_crm_owner" on "clients"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 create policy "contacts_select_commercial" on "contacts"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "contacts_write_commercial" on "contacts"
+create policy "contacts_write_crm_owner" on "contacts"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 create policy "leads_select_commercial" on "leads"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "leads_write_commercial" on "leads"
+create policy "leads_write_crm_owner" on "leads"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 create policy "interactions_select_commercial" on "interactions"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "interactions_write_commercial" on "interactions"
+create policy "interactions_write_crm_owner" on "interactions"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 -- ---- Product & pricing: materials, process_rates, box_specs, dies ---------
 -- Sales/production/accounting need read access to price and estimate

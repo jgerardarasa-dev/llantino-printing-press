@@ -3,12 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestone 0 (Foundation) and Milestone 1 (Data layer) are
-built. Everything else in `SPEC.md` §10 is intentionally not started yet
-— each remaining milestone (CRM, Pricing engine, Quotations, Job Orders,
-Tasks + Calendar, HR, Accounting, Dashboards, Polish) is its own future
-pass. Nav links to those areas render a "coming in Milestone N" screen
-rather than a broken page.
+**Status:** Milestones 0–2 are built (Foundation, Data layer, CRM).
+Everything else in `SPEC.md` §10 is intentionally not started yet — each
+remaining milestone (Pricing engine, Quotations, Job Orders, Tasks +
+Calendar, HR, Accounting, Dashboards, Polish) is its own future pass. Nav
+links to those areas render a "coming in Milestone N" screen rather than
+a broken page.
 
 ## Stack
 
@@ -75,12 +75,17 @@ src/
     (auth)/login/        invite-only sign-in (no public sign-up route)
     (app)/                authenticated shell: sidebar, topbar, breadcrumb
       dashboard/          role-aware landing page
-      clients/ leads/ quotations/ job-orders/ materials/ deliveries/
+      clients/             list + 360 view (contacts, interactions, JOs,
+                            quotations/invoices placeholders) — Milestone 2
+      leads/                kanban pipeline by stage — Milestone 2
+      quotations/ job-orders/ materials/ deliveries/
       tasks/ calendar/ hr/* accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
     ui/                   hand-ported shadcn/ui primitives
     layout/                sidebar, topbar, nav config, breadcrumb
+    crm/                   contact/interaction forms + lists (Milestone 2)
+    shared/                DataTable, StageBadge, ComingSoon
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
     migrations/             drizzle-kit generated SQL + the hand-written
@@ -122,3 +127,11 @@ scripts/
 - **Money** is always `bigint` centavos (`src/db/schema/_shared.ts`
   `centavos()`), read back as an ordinary JS number (safe well beyond any
   realistic peso amount) so Server Actions don't have to juggle `BigInt`.
+- **Leads kanban moves stage via a `<Select>` on each card, not drag-and-
+  drop.** No DnD library dependency, and it's the more reliable
+  interaction at 375px anyway — a deliberate simplification, not a
+  missing feature.
+- **CRM writes don't insert `activity_log` rows.** SPEC's non-negotiable
+  list is job_orders/quotations/invoices only (§5, §11); clients/leads/
+  contacts/interactions are "encouraged to as well" but out of scope for
+  now to keep Milestone 2 focused.
