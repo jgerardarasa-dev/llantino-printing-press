@@ -158,11 +158,15 @@ create policy "activity_log_select" on "activity_log"
   using (
     public.is_admin_or_management()
     or actor_id = auth.uid()
-    or (public.is_sales() and entity_type in ('client', 'contact', 'lead', 'interaction', 'quotation', 'job_order'))
-    or (public.is_production() and entity_type in ('job_order'))
-    or (public.is_accounting() and entity_type in ('invoice', 'payment', 'expense', 'purchase_order', 'job_order', 'quotation'))
-    or (public.is_hr() and entity_type in ('employee', 'attendance', 'leave_request', 'leave_balance'))
-    or (public.is_staff() and entity_type in ('task'))
+    -- entity_type values match Postgres's tg_table_name (the real,
+    -- plural table name) since that's what the activity_log trigger
+    -- (see log_activity() below) actually inserts — keep any future
+    -- explicit inserts consistent with that, not the singular form.
+    or (public.is_sales() and entity_type in ('clients', 'contacts', 'leads', 'interactions', 'quotations', 'job_orders'))
+    or (public.is_production() and entity_type in ('job_orders'))
+    or (public.is_accounting() and entity_type in ('invoices', 'payments', 'expenses', 'purchase_orders', 'job_orders', 'quotations'))
+    or (public.is_hr() and entity_type in ('employees', 'attendance', 'leave_requests', 'leave_balances'))
+    or (public.is_staff() and entity_type in ('tasks'))
   );
 
 create policy "activity_log_insert" on "activity_log"

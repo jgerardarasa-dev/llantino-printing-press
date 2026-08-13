@@ -15,6 +15,13 @@
       "when": 1786624501296,
       "tag": "0001_rls_policies_and_triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786628388107,
+      "tag": "0002_jo_stage_history_trigger",
+      "breakpoints": true
     }
   ]
 }

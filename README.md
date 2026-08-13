@@ -3,12 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–4 are built (Foundation, Data layer, CRM,
-Pricing engine, Quotations). Everything else in `SPEC.md` §10 is
-intentionally not started yet — each remaining milestone (Job Orders,
-Tasks + Calendar, HR, Accounting, Dashboards, Polish) is its own future
-pass. Nav links to those areas render a "coming in Milestone N" screen
-rather than a broken page.
+**Status:** Milestones 0–5 are built (Foundation, Data layer, CRM,
+Pricing engine, Quotations, Job Orders). Everything else in `SPEC.md`
+§10 is intentionally not started yet — each remaining milestone (Tasks +
+Calendar, HR, Accounting, Dashboards, Polish) is its own future pass.
+Nav links to those areas render a "coming in Milestone N" screen rather
+than a broken page.
 
 ## Stack
 
@@ -82,7 +82,12 @@ src/
                               CRUD, tabbed — Milestone 3
       quotations/             builder, list, detail, edit, PDF route —
                                Milestone 4
-      job-orders/ deliveries/
+      job-orders/             list + detail (stage stepper, production
+                               logs, materials, QC checklist, deliveries)
+                               — Milestone 5
+      deliveries/[id]/pdf/     DR PDF route (the /deliveries list page
+                               itself is still a placeholder — delivery
+                               management lives on the JO detail page)
       tasks/ calendar/ hr/* accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
@@ -91,6 +96,10 @@ src/
     crm/                   contact/interaction forms + lists (Milestone 2)
     quotations/             breakdown table, tier tables, action buttons
                              (Milestone 4)
+    job-orders/              stage stepper + advance dialog, hold/cancel,
+                             production logs, materials, checklist,
+                             deliveries, activity timeline, comments
+                             (Milestone 5)
     shared/                DataTable, StageBadge, ComingSoon
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
@@ -105,9 +114,13 @@ src/
     pricing/                 computeQuote + Vitest suite, quantity tiers,
                               the rough ups-per-sheet suggestion helper
                               (Milestone 3 — pure functions, no DB access)
-    pdf/                     @react-pdf/renderer quotation document +
-                              the props-builder shared by the PDF route
-                              and the email action (Milestone 4)
+    pdf/                     @react-pdf/renderer documents — quotation
+                              (+ props-builder shared with the email
+                              action, Milestone 4) and delivery receipt
+                              (Milestone 5)
+    job-orders/state-machine.ts  the transition map (SPEC §6): legal
+                                  moves, gated transitions, cancellation;
+                                  Vitest-covered
     settings/get-settings.ts  typed reader over the settings k/v table,
                                with SPEC §13's placeholder defaults baked
                                in so the app runs before those decisions
@@ -194,3 +207,36 @@ scripts/
 - **`RESEND_API_KEY` unset → email send fails gracefully**, not a crash:
   `emailQuotation` returns a clear error toast instead. PDF download
   works either way since it doesn't touch Resend.
+- **`cancelled` is a terminal value of the `stage` enum, not a separate
+  boolean flag.** SPEC §6 describes `on_hold` and `cancelled` as two
+  orthogonal flags "reachable from any stage." `on_hold` is modeled that
+  way (`is_on_hold` + `hold_reason`, independent of `stage`), but
+  `cancelled` is modeled as the last stop in the same `stage` column
+  instead — one column stays the single source of truth for "where is
+  this job order," and `cancelled_reason` still captures why. The
+  observable behavior (terminal, requires a reason, requires
+  admin/management) is identical either way.
+- **jo_stage_history's trigger is the ground truth; the TS state
+  machine (`lib/job-orders/state-machine.ts`) is what makes a transition
+  legal in the first place.** The trigger fires unconditionally on any
+  stage change and can't be bypassed — but it doesn't validate anything,
+  it only records. `advanceJobOrderStage` calls `assertValidTransition`
+  *before* issuing the UPDATE; the rework note reaches the trigger via a
+  session-local Postgres setting (`set_config('llantino.stage_note', ...,
+  true)`) set in the same transaction, since job_orders has no column of
+  its own to carry a per-transition note.
+- **The `artwork_approval → prepress` gate is client-approval-by-form,
+  not by attachment.** SPEC §6 asks for "an attachment of kind `proof`
+  and a recorded client approval (name + date)" — file upload isn't
+  wired up yet (see the Attachments card on the JO detail page), so the
+  gate is satisfied by recording the approver's name and date through
+  the advance-stage dialog instead. Revisit once Storage is wired.
+- **Comments are plain text.** SPEC's "comments with @mentions" — the
+  thread itself works (any signed-in user, any entity), but there's no
+  @mention autocomplete or resulting notification yet; `mentions` is
+  always saved empty.
+- **Production's price/contact hiding happens at the data-fetcher level**
+  (`getJobOrderDetail`/`listJobOrders` null out `unitPriceCentavos`,
+  `totalCentavos`, and non-name client fields before the Server
+  Component ever renders), not just by hiding a column in the UI —
+  the strongest of SPEC §4's three enforcement layers for this rule.

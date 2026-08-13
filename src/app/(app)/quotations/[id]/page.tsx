@@ -4,13 +4,14 @@ import { ArrowLeft } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { COMMERCIAL_ROLES, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
-import { getQuotationDetail } from "@/lib/data/quotations";
+import { getJobOrderIdForQuotation, getQuotationDetail } from "@/lib/data/quotations";
 import { formatCentavos, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BreakdownTable } from "@/components/quotations/breakdown-table";
 import { StoredTierTable } from "@/components/quotations/stored-tier-table";
 import { QuotationActions } from "@/components/quotations/quotation-actions";
+import { CreateJobOrderDialog } from "@/components/quotations/create-job-order-dialog";
 import type { QuoteBreakdown } from "@/lib/pricing/types";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "warning" | "destructive" | "success"> = {
@@ -31,7 +32,10 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
     return <div className="flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">You don&rsquo;t have access to quotations.</div>;
   }
 
-  const detail = await getQuotationDetail(user, id);
+  const [detail, existingJobOrder] = await Promise.all([
+    getQuotationDetail(user, id),
+    getJobOrderIdForQuotation(user, id),
+  ]);
   if (!detail) notFound();
 
   const { quotation, client, preparer, approver, item, tiers } = detail;
@@ -73,14 +77,24 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
         </div>
       </div>
 
-      <QuotationActions
-        quotationId={quotation.id}
-        status={quotation.status}
-        requiresApproval={breakdown?.requiresApproval ?? false}
-        canEdit={canEdit}
-        canApprove={canApprove}
-        hasContactEmail={Boolean(client)}
-      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <QuotationActions
+          quotationId={quotation.id}
+          status={quotation.status}
+          requiresApproval={breakdown?.requiresApproval ?? false}
+          canEdit={canEdit}
+          canApprove={canApprove}
+          hasContactEmail={Boolean(client)}
+        />
+        {canEdit &&
+          (existingJobOrder ? (
+            <Link href={`/job-orders/${existingJobOrder.id}`} className="text-sm font-medium text-primary hover:underline">
+              View job order {existingJobOrder.joNumber} →
+            </Link>
+          ) : (
+            ["sent", "approved"].includes(quotation.status) && <CreateJobOrderDialog quotationId={quotation.id} />
+          ))}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-4 lg:col-span-2">

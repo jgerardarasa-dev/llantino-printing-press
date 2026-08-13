@@ -72,6 +72,17 @@ export async function getQuotationDetail(user: CurrentUser, quotationId: string)
 }
 export type QuotationDetail = NonNullable<Awaited<ReturnType<typeof getQuotationDetail>>>;
 
+export async function getJobOrderIdForQuotation(user: CurrentUser, quotationId: string) {
+  return withUserContext(user.id, async (tx) => {
+    const [row] = await tx
+      .select({ id: jobOrders.id, joNumber: jobOrders.joNumber })
+      .from(jobOrders)
+      .where(eq(jobOrders.quotationId, quotationId))
+      .limit(1);
+    return row ?? null;
+  });
+}
+
 /** For the "repeat order" picker on the quotation builder. */
 export async function listClientJobOrdersForRepeat(user: CurrentUser, clientId: string) {
   return withUserContext(user.id, async (tx) =>
