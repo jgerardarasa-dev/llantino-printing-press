@@ -3,12 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–6 are built (Foundation, Data layer, CRM,
-Pricing engine, Quotations, Job Orders, Tasks + Calendar). Everything
-else in `SPEC.md` §10 is intentionally not started yet — each remaining
-milestone (HR, Accounting, Dashboards, Polish) is its own future pass.
-Nav links to those areas render a "coming in Milestone N" screen rather
-than a broken page.
+**Status:** Milestones 0–7 are built (Foundation, Data layer, CRM,
+Pricing engine, Quotations, Job Orders, Tasks + Calendar, HR).
+Everything else in `SPEC.md` §10 is intentionally not started yet — each
+remaining milestone (Accounting, Dashboards, Polish) is its own future
+pass. Nav links to those areas render a "coming in Milestone N" screen
+rather than a broken page.
 
 ## Stack
 
@@ -91,7 +91,10 @@ src/
       tasks/                  board (kanban/list/my-tasks) — Milestone 6
       calendar/                unified FullCalendar + JSON feed route
                                reading v_calendar_feed — Milestone 6
-      hr/* accounting/* analytics/ settings/
+      hr/                      employees, attendance (+ CSV import),
+                               leave requests/balances/holidays —
+                               Milestone 7
+      accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
     ui/                   hand-ported shadcn/ui primitives
@@ -267,3 +270,29 @@ scripts/
   request per checkbox — the feed route is only re-hit when the visible
   date range changes (FullCalendar's `datesSet`) or a new manual event
   is added.
+- **`listEmployees` selects the full employee row, not a trimmed
+  projection** — the edit form reuses that list for its prefill, and an
+  earlier trimmed version would have silently blanked out
+  sssNo/philhealthNo/pagibigNo/tin/emergencyContact on every edit (the
+  form would submit them empty, overwriting real values with null).
+  Caught and fixed before it ever touched real data.
+- **No payroll computation** (SPEC §12 explicitly excludes it) — HR
+  captures daily/monthly rate as a single input field, government IDs,
+  and leave; nothing sums hours into pay.
+- **Leave day counts are naive calendar-day counts** (`end − start + 1`),
+  not adjusted for weekends or holidays — a placeholder pending real
+  company leave policy, same class of "confirm with client" decision as
+  SPEC §13's markup/threshold placeholders.
+- **Leave balance entitlements default from a hardcoded table**
+  (`DEFAULT_LEAVE_ENTITLEMENT_DAYS`) the first time a request against a
+  given employee/year/leave-type is approved — there's no per-employee
+  entitlement setup screen yet, so this is a placeholder company policy,
+  not configured data.
+- **Attendance CSV import** expects a `employee_no,date,time_in,time_out,
+  status` header row; unknown employee numbers or duplicate employee/date
+  rows are skipped and reported back in the error toast rather than
+  failing the whole import.
+- **Rejecting a leave request has no stored reason** —
+  `leave_requests` has no `rejected_reason` column (only the generic
+  `approved_by`/`approved_at`, reused for "who acted on this"). Revisit
+  if HR needs an audit trail of why something was turned down.

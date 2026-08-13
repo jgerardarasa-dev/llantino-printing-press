@@ -13,6 +13,12 @@ export const COMMERCIAL_ROLES: UserRole[] = ["admin", "management", "sales", "ac
 export const PRICING_ADMIN_ROLES: UserRole[] = ["admin"];
 /** Box specs: commercial roles plus production (mirrors box_specs_write RLS). */
 export const BOX_SPEC_ROLES: UserRole[] = ["admin", "management", "sales", "accounting", "production"];
+/** HR data — employees, attendance, leave balances (mirrors employees_write_hr etc. RLS). */
+export const HR_ROLES: UserRole[] = ["admin", "hr"];
+/** Read access to HR/payroll-adjacent data (mirrors is_hr_or_finance_role() RLS). */
+export const HR_OR_FINANCE_ROLES: UserRole[] = ["admin", "management", "hr", "accounting"];
+/** Who may approve/reject a leave request. */
+export const LEAVE_APPROVER_ROLES: UserRole[] = ["admin", "hr", "management"];
 
 export class ForbiddenError extends Error {
   constructor(message = "You don't have permission to do that.") {
