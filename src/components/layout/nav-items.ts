@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileText,
   LayoutDashboard,
+  Megaphone,
   Receipt,
   Settings,
   Truck,
@@ -124,6 +125,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Insights",
     items: [
       { label: "Analytics", href: "/analytics", icon: BarChart3, roles: ["admin", "management"] },
+      { label: "Meta Ads", href: "/analytics/ads", icon: Megaphone, roles: ["admin", "management"] },
       { label: "Settings", href: "/settings", icon: Settings, roles: ["admin"] },
     ],
   },

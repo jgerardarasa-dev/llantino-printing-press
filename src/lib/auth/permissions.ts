@@ -25,6 +25,10 @@ export const ACCOUNTING_WRITE_ROLES: UserRole[] = ["admin", "accounting"];
 export const INVOICE_READ_ROLES: UserRole[] = ["admin", "management", "accounting", "sales"];
 /** Expenses read access (mirrors expenses_select RLS). */
 export const EXPENSE_READ_ROLES: UserRole[] = ["admin", "management", "accounting"];
+/** Company-wide dashboard (SPEC §8) and /analytics section — the rest of the roles get their own dashboard instead. */
+export const MANAGEMENT_DASHBOARD_ROLES: UserRole[] = ["admin", "management"];
+/** Manual ad_spend entry + the Meta Ads settings link (SPEC §8 Meta Ads section). */
+export const AD_SPEND_ROLES: UserRole[] = ["admin", "management"];
 
 export class ForbiddenError extends Error {
   constructor(message = "You don't have permission to do that.") {

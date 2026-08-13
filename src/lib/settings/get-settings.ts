@@ -23,6 +23,9 @@ export type AppSettings = {
   approvalTotalCentavosThreshold: number;
   quoteNumberPrefix: string;
   joNumberPrefix: string;
+  /** SPEC §8 Meta Ads: ad account id shown on /analytics/ads + the manager-link target. */
+  metaAdsAccountId: string;
+  metaAdsManagerUrl: string;
 };
 
 /**
@@ -48,6 +51,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   approvalTotalCentavosThreshold: 10_000_000, // ₱100,000.00
   quoteNumberPrefix: "QT",
   joNumberPrefix: "JO",
+  metaAdsAccountId: "",
+  metaAdsManagerUrl: "https://adsmanager.facebook.com/",
 };
 
 export async function getSettings(user: CurrentUser): Promise<AppSettings> {
@@ -60,6 +65,7 @@ export async function getSettings(user: CurrentUser): Promise<AppSettings> {
   const pricingDefaults = map.get(SETTINGS_KEYS.PRICING_DEFAULTS) ?? {};
   const approval = map.get(SETTINGS_KEYS.APPROVAL_THRESHOLDS) ?? {};
   const numbering = map.get(SETTINGS_KEYS.NUMBERING) ?? {};
+  const metaAds = map.get(SETTINGS_KEYS.META_ADS) ?? {};
   const validityDays = map.get(SETTINGS_KEYS.QUOTATION_VALIDITY_DAYS) as unknown as number | undefined;
 
   return {
@@ -85,5 +91,7 @@ export async function getSettings(user: CurrentUser): Promise<AppSettings> {
       (approval.totalCentavosThreshold as number) ?? DEFAULT_SETTINGS.approvalTotalCentavosThreshold,
     quoteNumberPrefix: (numbering.quotePrefix as string) ?? DEFAULT_SETTINGS.quoteNumberPrefix,
     joNumberPrefix: (numbering.joPrefix as string) ?? DEFAULT_SETTINGS.joNumberPrefix,
+    metaAdsAccountId: (metaAds.accountId as string) ?? DEFAULT_SETTINGS.metaAdsAccountId,
+    metaAdsManagerUrl: (metaAds.managerUrl as string) ?? DEFAULT_SETTINGS.metaAdsManagerUrl,
   };
 }

@@ -26,8 +26,13 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 /**
- * Default landing page per role. Management/admin land on the company-wide
- * dashboard; other roles land on their own role dashboard.
+ * Not currently wired to a redirect or the nav — Milestone 9 kept a single
+ * `/dashboard` route with role-conditional server-rendered content (see
+ * `app/(app)/dashboard/page.tsx`) instead of real per-role URLs, so every
+ * role's sidebar "Dashboard" link points at `/dashboard` and the page
+ * itself picks the right widget set from `user.role`. Left here in case a
+ * later milestone (deep-linkable role dashboards, per-role bookmarks)
+ * wants real routes instead.
  */
 export const ROLE_DEFAULT_ROUTE: Record<UserRole, string> = {
   admin: "/dashboard",

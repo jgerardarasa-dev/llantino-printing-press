@@ -7,7 +7,7 @@ import { listDeliveredJobOrdersAwaitingInvoice, listInvoices } from "@/lib/data/
 import { DataTable } from "@/components/shared/data-table";
 import { invoiceColumns } from "./columns";
 import { GenerateInvoiceDialog } from "./generate-invoice-dialog";
-import { AgingSummary } from "./aging-summary";
+import { AgingSummary } from "@/components/accounting/aging-summary";
 
 export default async function InvoicesPage() {
   const user = await getCurrentUser();

@@ -3,12 +3,11 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–8 are built (Foundation, Data layer, CRM,
+**Status:** Milestones 0–9 are built (Foundation, Data layer, CRM,
 Pricing engine, Quotations, Job Orders, Tasks + Calendar, HR,
-Accounting). Everything else in `SPEC.md` §10 is intentionally not
-started yet — each remaining milestone (Dashboards + Analytics, Polish)
-is its own future pass. Nav links to those areas render a "coming in
-Milestone N" screen rather than a broken page.
+Accounting, Dashboards + Analytics). Milestone 10 (Polish: notifications,
+global search, mobile pass, Playwright E2E) is intentionally not started
+yet — it's its own future pass.
 
 ## Stack
 
@@ -97,8 +96,14 @@ src/
       accounting/              invoice generation from delivered JOs,
                                payments + aging, expenses with JO
                                tagging, job costing report — Milestone 8
-      analytics/ settings/
-                          — placeholder pages, one per future milestone
+      analytics/               revenue/conversion/lead-time/waste-rate/
+                               retention + CSV export — Milestone 9
+        ads/                   Meta Ads manual spend entry + cost-per-lead
+                               — Milestone 9
+      settings/               — still a placeholder page (no module has
+                               claimed the company-wide settings UI yet;
+                               Meta Ads' own settings live inline on its
+                               page instead, admin-gated — Milestone 9)
   components/
     ui/                   hand-ported shadcn/ui primitives
     layout/                sidebar, topbar, nav config, breadcrumb
@@ -111,7 +116,17 @@ src/
                              (Milestone 5)
     calendar/                FullCalendar wrapper, layer toggles, source
                              colour map, new-event dialog (Milestone 6)
-    shared/                DataTable, StageBadge, ComingSoon
+    accounting/              AgingSummary (shared between the invoices
+                             page and the management dashboard —
+                             Milestone 9)
+    dashboard/               KpiCard, ChartCard (chart/table toggle + CSV
+                             export shell), stage funnel/bottleneck
+                             charts, per-role dashboard bodies (sales/
+                             production/accounting/hr/staff) — Milestone 9
+    analytics/               revenue/lead-time/waste-rate charts, ad
+                             spend form + Meta settings form — Milestone 9
+    shared/                DataTable, StageBadge, ComingSoon,
+                           CsvExportButton (Milestone 9)
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
     migrations/             drizzle-kit generated SQL + the hand-written
@@ -141,7 +156,25 @@ src/
     settings/get-settings.ts  typed reader over the settings k/v table,
                                with SPEC §13's placeholder defaults baked
                                in so the app runs before those decisions
-                               are confirmed (Milestone 4)
+                               are confirmed (Milestone 4); Meta Ads
+                               account id/link added in Milestone 9
+    data/dashboard.ts          per-role dashboard queries — management
+                               KPI row/funnel/bottleneck/top clients plus
+                               sales/production/accounting/hr/staff
+                               widgets (Milestone 9)
+    data/analytics.ts          /analytics report queries — revenue by
+                               month/client/box-style/industry, conversion
+                               rate, lead-time trend, waste rate, client
+                               retention (Milestone 9)
+    data/ad-spend.ts            ad_spend CRUD + cost-per-lead/cost-per-
+                               won-client (Milestone 9)
+    integrations/meta/         Marketing API stub — TODO for Phase 2, no
+                               live calls in the MVP (Milestone 9)
+    csv.ts                     client-side CSV builder + download trigger,
+                               no server round trip (Milestone 9)
+    constants/stage-chart-colours.ts  hex equivalents of STAGE_COLOURS for
+                               chart fills — same hue per stage as the
+                               existing badges (Milestone 9)
     constants/roles.ts        role enum, labels, default routes
     validation/entities.ts    Zod schema per entity (drizzle-zod derived)
 scripts/
@@ -333,3 +366,87 @@ scripts/
   bundle a `"server-only"`-guarded module into client code. Fixed by
   extracting the pure aging logic into `lib/accounting/aging.ts`, which
   has no DB dependency and is safe on both sides.
+
+### Milestone 9 — Dashboards + Analytics
+
+- **Single `/dashboard` route, role-conditional content — not real
+  per-role URLs.** `ROLE_DEFAULT_ROUTE` (defined back in Milestone 0) is
+  still unused; every role's sidebar link points at `/dashboard`, and the
+  page picks the right widget set from `user.role` server-side. Simpler
+  than wiring six routes + a redirect layer, and every other list page in
+  this app already reads role off the session rather than the URL.
+- **"Active JOs" is defined as `stage not in ('closed', 'cancelled')`** —
+  a JO stays "active" through `delivered`/`invoiced`/`paid` since money or
+  paperwork can still be outstanding; only an explicit close or a
+  cancellation drops it off the count. This is a judgment call (SPEC
+  doesn't define the KPI precisely) documented here rather than guessed
+  silently.
+- **"Revenue" across every analytics breakdown (by month/client/box-style/
+  industry) is invoice *subtotal*, not total.** VAT is a pass-through
+  liability collected on the government's behalf, not company revenue, so
+  it's excluded. "Cash collected" (a separate KPI) is the actual
+  `payments` total and *does* include whatever the client paid, VAT
+  included — the two numbers measure different things on purpose.
+- **Quotation conversion rate counts quotes *decided* in the date range**
+  (`status in ('approved','rejected')`, keyed off `updated_at` since
+  there's no separate `decided_at` column), not quotes *sent* in range —
+  a quote sent near the end of a 90-day window and decided just after it
+  closes would otherwise vanish from every range. "Source" for the
+  by-source breakdown falls back from the originating lead's source to
+  the client's own source when the quote wasn't lead-sourced.
+- **Cost-per-lead uses the CRM's own `leads` count (`source = 'meta_ads'`),
+  not `ad_spend.leads_generated`.** The latter is a number the advertiser
+  types in from the platform's own reporting and may not match what
+  actually landed as a real lead row — it's still stored and shown for
+  reconciliation, but the KPI computation trusts the CRM, not Meta's
+  self-report.
+- **The company-wide Settings page (`/settings`) is still the Milestone 0
+  placeholder** — no module has claimed it yet. Meta Ads needed
+  *something* writable (the ad account id + Ads Manager link), so that
+  one setting got its own small inline form on `/analytics/ads` instead
+  of waiting on a general settings UI; it still writes through the same
+  `settings` k/v table and the same `settings_admin_write` RLS policy
+  (admin-only — stricter than the `AD_SPEND_ROLES` that can log spend
+  entries) that a future full settings page would use.
+- **Stage-keyed charts (JO funnel, bottleneck, waste-rate-by-stage) reuse
+  the exact hue family from the existing `STAGE_COLOURS` badges**
+  (`lib/constants/stage-chart-colours.ts`), not a freshly-generated
+  categorical palette. This is a deliberate, documented departure from
+  the dataviz skill's default "run the validator on a new categorical
+  pick" step — SPEC §9 requires a JO stage to read as the *same* colour
+  everywhere (badge, kanban, calendar, and now every chart), so the
+  colour identity here is inherited from an already-shipped decision, not
+  chosen fresh. Non-stage charts (revenue trend, lead-time trend, cash
+  in/out) do use the dataviz skill's own validated reference palette
+  (`#2a78d6` blue / `#eb6834` orange, etc.).
+- **No dark mode anywhere in this app** (confirmed back in earlier
+  milestones — `STAGE_COLOURS` is explicitly "light-mode only," and no
+  `ThemeProvider` or toggle exists), so the new charts are light-mode
+  only too. This isn't a new gap Milestone 9 introduced; the dataviz
+  skill's dark-mode accessibility pass is out of scope until the app
+  itself supports a dark theme.
+- **`ChartCard` is the one shell every chart/table on `/dashboard` and
+  `/analytics` goes through** — title, a chart/table toggle (satisfies
+  the "a table view exists" accessibility rule with zero duplicated
+  markup), and a CSV export button (SPEC §8's non-negotiable). Sections
+  that are tables by design (revenue by client, conversion rate, waste
+  rate by operator, top clients) just omit the chart child and render
+  table-only.
+- **Every date-range filter is a bare `<form method="get">`** — no client
+  JS, no `useRouter`, the browser's own navigation re-runs the server
+  component with new `searchParams`. Consistent with the rest of the app
+  being server-rendered by default; a client component was only reached
+  for where genuine interactivity was unavoidable (the chart/table
+  toggle, the CSV button, the entry-form dialogs).
+- **Job costing is not duplicated.** SPEC §8 lists "quoted cost vs actual
+  cost per JO" under both Accounting (Milestone 8) and Analytics
+  (Milestone 9); `/analytics` links to the existing `/accounting/job-
+  costing` report instead of rebuilding the same query a second time.
+- **Waste rate and lead-time trend have no dedicated Vitest coverage** —
+  they're straightforward SQL aggregations (avg/sum/group-by) rather than
+  business logic with edge cases worth unit-testing in isolation, unlike
+  `computeQuote` or the JO state machine. Exercised only by the build/
+  typecheck gate and manual review, same as the rest of this milestone's
+  reporting queries — there is still no live Supabase project connected
+  in this environment, so none of Milestone 9's queries have been run
+  against real data; only typecheck/lint/test/build have verified them.
