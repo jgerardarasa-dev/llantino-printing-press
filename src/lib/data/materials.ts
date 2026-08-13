@@ -1,9 +1,10 @@
 import "server-only";
-import { asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { withUserContext } from "@/db/client";
 import { boxSpecs, materials, processRates } from "@/db/schema";
 import type { CurrentUser } from "@/lib/auth/get-current-user";
+import { toRatesMap } from "@/lib/pricing/rates-map";
 
 export async function listMaterials(user: CurrentUser) {
   return withUserContext(user.id, async (tx) =>
@@ -48,3 +49,21 @@ export async function listBoxSpecs(user: CurrentUser) {
   );
 }
 export type BoxSpecRow = Awaited<ReturnType<typeof listBoxSpecs>>[number];
+
+/** key -> ProcessRate, for computeQuote(). Active rates only. */
+export async function getProcessRatesMap(user: CurrentUser) {
+  const rows = await listProcessRates(user);
+  return toRatesMap(rows);
+}
+
+export async function getBoxSpecWithMaterial(user: CurrentUser, boxSpecId: string) {
+  return withUserContext(user.id, async (tx) => {
+    const [row] = await tx
+      .select({ boxSpec: boxSpecs, material: materials })
+      .from(boxSpecs)
+      .leftJoin(materials, eq(materials.id, boxSpecs.materialId))
+      .where(and(eq(boxSpecs.id, boxSpecId), isNull(boxSpecs.deletedAt)))
+      .limit(1);
+    return row ?? null;
+  });
+}

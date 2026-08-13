@@ -92,3 +92,14 @@ export async function getClientDetail(user: CurrentUser, clientId: string) {
 }
 
 export type ClientDetail = NonNullable<Awaited<ReturnType<typeof getClientDetail>>>;
+
+export async function getClientById(user: CurrentUser, clientId: string) {
+  return withUserContext(user.id, async (tx) => {
+    const [row] = await tx
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, clientId), isNull(clients.deletedAt)))
+      .limit(1);
+    return row ?? null;
+  });
+}

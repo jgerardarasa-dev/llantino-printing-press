@@ -3,12 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–3 are built (Foundation, Data layer, CRM,
-Pricing engine). Everything else in `SPEC.md` §10 is intentionally not
-started yet — each remaining milestone (Quotations, Job Orders, Tasks +
-Calendar, HR, Accounting, Dashboards, Polish) is its own future pass. Nav
-links to those areas render a "coming in Milestone N" screen rather than
-a broken page.
+**Status:** Milestones 0–4 are built (Foundation, Data layer, CRM,
+Pricing engine, Quotations). Everything else in `SPEC.md` §10 is
+intentionally not started yet — each remaining milestone (Job Orders,
+Tasks + Calendar, HR, Accounting, Dashboards, Polish) is its own future
+pass. Nav links to those areas render a "coming in Milestone N" screen
+rather than a broken page.
 
 ## Stack
 
@@ -80,13 +80,17 @@ src/
       leads/                kanban pipeline by stage — Milestone 2
       materials/             materials / process rates / box specs admin
                               CRUD, tabbed — Milestone 3
-      quotations/ job-orders/ deliveries/
+      quotations/             builder, list, detail, edit, PDF route —
+                               Milestone 4
+      job-orders/ deliveries/
       tasks/ calendar/ hr/* accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
     ui/                   hand-ported shadcn/ui primitives
     layout/                sidebar, topbar, nav config, breadcrumb
     crm/                   contact/interaction forms + lists (Milestone 2)
+    quotations/             breakdown table, tier tables, action buttons
+                             (Milestone 4)
     shared/                DataTable, StageBadge, ComingSoon
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
@@ -101,6 +105,13 @@ src/
     pricing/                 computeQuote + Vitest suite, quantity tiers,
                               the rough ups-per-sheet suggestion helper
                               (Milestone 3 — pure functions, no DB access)
+    pdf/                     @react-pdf/renderer quotation document +
+                              the props-builder shared by the PDF route
+                              and the email action (Milestone 4)
+    settings/get-settings.ts  typed reader over the settings k/v table,
+                               with SPEC §13's placeholder defaults baked
+                               in so the app runs before those decisions
+                               are confirmed (Milestone 4)
     constants/roles.ts        role enum, labels, default routes
     validation/entities.ts    Zod schema per entity (drizzle-zod derived)
 scripts/
@@ -159,3 +170,27 @@ scripts/
   `box_specs.finishing[]` and `computeQuote`'s rate lookups reference.
   The edit form shows it read-only rather than allowing a rename that
   would silently break existing box specs.
+- **The quotation builder's live breakdown is a client-side preview
+  only.** `saveQuotationDraft` never trusts a client-submitted cost
+  breakdown — it re-fetches the box spec/material/process rates/settings
+  fresh from the DB inside the Server Action and re-runs `computeQuote`
+  itself before persisting. The client-computed numbers exist purely so
+  sales sees live feedback while typing.
+- **One item per quotation for now.** `quotation_items` is a real table
+  that can hold many rows, but the builder UI only creates one — a
+  quotation for a single box spec. Multi-line quotations (several
+  different products in one quote) are a clean extension of the same
+  data model, just not built yet.
+- **`sendOrSubmitQuotation` is one button that routes itself**: from
+  `draft`, it goes to `pending_approval` if the stored breakdown's
+  `requiresApproval` is true, otherwise straight to `sent`; from
+  `approved`, it always sends. Matches SPEC §7's "cannot be sent until a
+  management user approves" without making sales pick the right button.
+- **Quotation `expired` status is computed at display time, not
+  persisted.** A `sent`/`approved` quote past its `validUntil` shows an
+  "Expired" badge everywhere, but the DB row keeps its real status —
+  nothing mutates data on a GET request. Revisit if a background job
+  (or Milestone 9's dashboard) ends up needing the persisted state.
+- **`RESEND_API_KEY` unset → email send fails gracefully**, not a crash:
+  `emailQuotation` returns a clear error toast instead. PDF download
+  works either way since it doesn't touch Resend.

@@ -15,6 +15,7 @@
 import "dotenv/config";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
+import { sql } from "drizzle-orm";
 
 import {
   boxSpecs,
@@ -23,8 +24,10 @@ import {
   jobOrders,
   materials,
   processRates,
+  settings,
   users,
 } from "../src/db/schema";
+import { SETTINGS_KEYS } from "../src/lib/settings/keys";
 
 function pesos(amount: number) {
   return Math.round(amount * 100);
@@ -49,6 +52,69 @@ async function main() {
     );
   }
   const createdBy = admin.id;
+
+  // -----------------------------------------------------------------------
+  // Settings — SPEC §13 lists most of these as open decisions to confirm
+  // with the client. Seeded with the spec's own placeholder values so
+  // the app runs sensibly; revisit once real answers come back.
+  // -----------------------------------------------------------------------
+  console.log("Seeding settings...");
+  await db
+    .insert(settings)
+    .values([
+      {
+        key: SETTINGS_KEYS.COMPANY_INFO,
+        value: {
+          name: "Llantino Printing Press",
+          address: "Metro Manila, Philippines",
+          tin: "000-000-000-000",
+          phone: "+63 2 8000 0000",
+          email: "sales@llantino.ph",
+        },
+        description: "Company header shown on quotation/JO/invoice PDFs.",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.VAT,
+        value: { companyIsVatRegistered: true, vatPct: 12 },
+        description: "SPEC §13 open decision #2 — VAT registration status placeholder.",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.DEFAULT_MARKUP_PCT,
+        value: { standard: 35, preferred: 28, wholesale: 20 },
+        description: "SPEC §13 open decision #3 — placeholder markups per client tier.",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.QUOTATION_VALIDITY_DAYS,
+        value: 30,
+        description: "Default validity window for a new quotation.",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.PRICING_DEFAULTS,
+        value: { spoilagePct: 5, overheadPct: 12 },
+        description: "computeQuote() defaults — SPEC §7 step 1 and step 8.",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.APPROVAL_THRESHOLDS,
+        value: { markupFloorPct: 20, totalCentavosThreshold: 10_000_000 },
+        description: "SPEC §13 open decision #5 — placeholder approval threshold (₱100,000).",
+        updatedBy: createdBy,
+      },
+      {
+        key: SETTINGS_KEYS.NUMBERING,
+        value: { quotePrefix: "QT", joPrefix: "JO" },
+        description: "SPEC §13 open decision #1 — JO/quote numbering format placeholder.",
+        updatedBy: createdBy,
+      },
+    ])
+    .onConflictDoUpdate({
+      target: settings.key,
+      set: { value: sql`excluded.value`, updatedAt: new Date() },
+    });
 
   // -----------------------------------------------------------------------
   // 12 materials

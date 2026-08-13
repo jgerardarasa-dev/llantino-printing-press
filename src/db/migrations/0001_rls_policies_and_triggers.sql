@@ -305,29 +305,34 @@ alter table "quotations" enable row level security;
 alter table "quotation_items" enable row level security;
 alter table "quotation_tiers" enable row level security;
 
+-- Write access (including approve/reject, which only touch
+-- status/approved_by/approved_at — RLS can't restrict individual
+-- columns, so admin/management get the same row-level write access as
+-- sales here) is CRM-owner only; accounting keeps read-only, matching
+-- the same correction made for clients/contacts/leads/interactions.
 create policy "quotations_select_commercial" on "quotations"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "quotations_write_commercial" on "quotations"
+create policy "quotations_write_crm_owner" on "quotations"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 create policy "quotation_items_select_commercial" on "quotation_items"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "quotation_items_write_commercial" on "quotation_items"
+create policy "quotation_items_write_crm_owner" on "quotation_items"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 create policy "quotation_tiers_select_commercial" on "quotation_tiers"
   for select to authenticated using (public.is_commercial_role());
 
-create policy "quotation_tiers_write_commercial" on "quotation_tiers"
+create policy "quotation_tiers_write_crm_owner" on "quotation_tiers"
   for all to authenticated
-  using (public.is_commercial_role())
-  with check (public.is_commercial_role());
+  using (public.is_crm_owner_role())
+  with check (public.is_crm_owner_role());
 
 -- ---- Job Order spine ---------------------------------------------------------
 -- job_orders themselves: everyone except HR/staff-without-assignment can
