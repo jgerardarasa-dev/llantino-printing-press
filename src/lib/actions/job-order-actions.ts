@@ -15,7 +15,11 @@ import { QC_CHECKLIST_TEMPLATE } from "@/lib/job-orders/qc-checklist-template";
 
 export type ActionState = { error?: string; success?: boolean; jobOrderId?: string };
 
-const STAGE_ROLES: UserRole[] = ["admin", "management", "sales", "production"];
+// Accounting is included because it's the role that legitimately drives
+// the delivered -> invoiced -> paid tail of the pipeline (see
+// lib/actions/invoice-actions.ts) — assertValidTransition still gates
+// which specific moves are legal regardless of who's asking.
+const STAGE_ROLES: UserRole[] = ["admin", "management", "sales", "production", "accounting"];
 const MANAGER_ROLES: UserRole[] = ["admin", "management"];
 
 export async function createJobOrderFromQuotation(_prevState: ActionState, formData: FormData): Promise<ActionState> {

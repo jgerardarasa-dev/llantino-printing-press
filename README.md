@@ -3,12 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–7 are built (Foundation, Data layer, CRM,
-Pricing engine, Quotations, Job Orders, Tasks + Calendar, HR).
-Everything else in `SPEC.md` §10 is intentionally not started yet — each
-remaining milestone (Accounting, Dashboards, Polish) is its own future
-pass. Nav links to those areas render a "coming in Milestone N" screen
-rather than a broken page.
+**Status:** Milestones 0–8 are built (Foundation, Data layer, CRM,
+Pricing engine, Quotations, Job Orders, Tasks + Calendar, HR,
+Accounting). Everything else in `SPEC.md` §10 is intentionally not
+started yet — each remaining milestone (Dashboards + Analytics, Polish)
+is its own future pass. Nav links to those areas render a "coming in
+Milestone N" screen rather than a broken page.
 
 ## Stack
 
@@ -94,7 +94,10 @@ src/
       hr/                      employees, attendance (+ CSV import),
                                leave requests/balances/holidays —
                                Milestone 7
-      accounting/* analytics/ settings/
+      accounting/              invoice generation from delivered JOs,
+                               payments + aging, expenses with JO
+                               tagging, job costing report — Milestone 8
+      analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
     ui/                   hand-ported shadcn/ui primitives
@@ -129,6 +132,12 @@ src/
     job-orders/state-machine.ts  the transition map (SPEC §6): legal
                                   moves, gated transitions, cancellation;
                                   Vitest-covered
+    accounting/aging.ts       pure aging-bucket logic — split out from
+                               lib/data/accounting.ts specifically so a
+                               client component (the invoices DataTable's
+                               status column) can compute "overdue"
+                               without pulling a "server-only" module
+                               into the client bundle (Milestone 8)
     settings/get-settings.ts  typed reader over the settings k/v table,
                                with SPEC §13's placeholder defaults baked
                                in so the app runs before those decisions
@@ -296,3 +305,31 @@ scripts/
   `leave_requests` has no `rejected_reason` column (only the generic
   `approved_by`/`approved_at`, reused for "who acted on this"). Revisit
   if HR needs an audit trail of why something was turned down.
+- **Invoice generation and payment recording drive the JO state machine
+  directly** — generating an invoice from a delivered JO calls the same
+  `advanceJobOrderStage` used everywhere else (delivered → invoiced),
+  and a payment that fully settles an invoice advances invoiced → paid.
+  One transition implementation, no duplicated stage-change logic.
+  `accounting` was added to `STAGE_ROLES` (Server Action) and the
+  `job_orders_write` RLS policy for exactly this — `assertValidTransition`
+  still gates which specific moves are legal regardless of role.
+- **Job costing's "actual cost" omits logged labour hours × rate**
+  (SPEC's own formula), on purpose: there's no per-operator hourly rate
+  anywhere in the data model (employees have a daily/monthly rate, not
+  hourly), so computing a labour line would mean fabricating an
+  assumption SPEC never specifies. Actual cost = expenses tagged to the
+  JO + materials issued, costed at *current* material rates (jo_materials
+  doesn't snapshot cost-per-sheet at issuance) — both real, both stated
+  as such in the report's own caption rather than presented as complete.
+- **Withholding tax is entered manually at invoice generation** (PH EWT
+  rates vary by client/transaction type and SPEC doesn't specify one) and
+  is treated as settled immediately — it reduces the invoice's balance
+  from creation, on the assumption the withholding certificate serves as
+  proof of that portion, rather than needing an explicit "payment."
+- **A real webpack build failure, caught before commit**: the first cut
+  of `bucketForDueDate`/`AgingBucket` lived in the server-only
+  `lib/data/accounting.ts`, and the invoices DataTable's status column
+  (a Client Component) imported it — `pnpm build` correctly refused to
+  bundle a `"server-only"`-guarded module into client code. Fixed by
+  extracting the pure aging logic into `lib/accounting/aging.ts`, which
+  has no DB dependency and is safe on both sides.

@@ -19,6 +19,12 @@ export const HR_ROLES: UserRole[] = ["admin", "hr"];
 export const HR_OR_FINANCE_ROLES: UserRole[] = ["admin", "management", "hr", "accounting"];
 /** Who may approve/reject a leave request. */
 export const LEAVE_APPROVER_ROLES: UserRole[] = ["admin", "hr", "management"];
+/** Invoices/payments/expenses write access (mirrors *_write_accounting RLS). */
+export const ACCOUNTING_WRITE_ROLES: UserRole[] = ["admin", "accounting"];
+/** Invoices/payments read access (mirrors invoices_select / payments_select RLS). */
+export const INVOICE_READ_ROLES: UserRole[] = ["admin", "management", "accounting", "sales"];
+/** Expenses read access (mirrors expenses_select RLS). */
+export const EXPENSE_READ_ROLES: UserRole[] = ["admin", "management", "accounting"];
 
 export class ForbiddenError extends Error {
   constructor(message = "You don't have permission to do that.") {

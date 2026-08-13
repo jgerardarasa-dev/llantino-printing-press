@@ -112,6 +112,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: CircleDollarSign,
         roles: ["admin", "management", "accounting"],
       },
+      {
+        label: "Job Costing",
+        href: "/accounting/job-costing",
+        icon: BarChart3,
+        roles: ["admin", "management", "accounting"],
+      },
     ],
   },
   {

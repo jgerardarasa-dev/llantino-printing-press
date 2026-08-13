@@ -359,10 +359,14 @@ create policy "job_orders_select" on "job_orders"
     or (public.is_staff() and auth.uid() in (sales_owner_id, production_owner_id))
   );
 
+-- Accounting is included so it can drive delivered -> invoiced -> paid
+-- (see lib/actions/invoice-actions.ts, Milestone 8) — application-level
+-- transition legality (state-machine.ts) still gates which specific
+-- moves are allowed regardless of role.
 create policy "job_orders_write" on "job_orders"
   for all to authenticated
-  using (public.is_admin_or_management() or public.is_sales() or public.is_production())
-  with check (public.is_admin_or_management() or public.is_sales() or public.is_production());
+  using (public.is_admin_or_management() or public.is_sales() or public.is_production() or public.is_accounting())
+  with check (public.is_admin_or_management() or public.is_sales() or public.is_production() or public.is_accounting());
 
 create policy "jo_stage_history_select" on "jo_stage_history"
   for select to authenticated

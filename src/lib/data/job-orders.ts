@@ -86,6 +86,16 @@ export async function listJobOrders(user: CurrentUser) {
 }
 export type JobOrderListRow = Awaited<ReturnType<typeof listJobOrders>>[number];
 
+/** Lean id/label list for "tag to a JO" dropdowns (expenses, etc.). */
+export async function listJobOrderOptions(user: CurrentUser) {
+  return withUserContext(user.id, async (tx) =>
+    tx
+      .select({ id: jobOrders.id, joNumber: jobOrders.joNumber })
+      .from(jobOrders)
+      .orderBy(desc(jobOrders.createdAt))
+  );
+}
+
 /**
  * SPEC §4/§6 critical rule: production must never see selling price or
  * client contact info. Trimmed here at the data layer — the strongest
