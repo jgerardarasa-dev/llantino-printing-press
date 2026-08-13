@@ -164,7 +164,7 @@ export function AdvanceStageDialog({
 
         <DialogFooter>
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button type="button" disabled={!target || isPending} onClick={handleSubmit}>
+          <Button type="button" disabled={!target || isPending} onClick={handleSubmit} data-testid="advance-stage-submit">
             {isPending && <Loader2 className="size-4 animate-spin" />}
             {mode === "forward" ? "Advance" : "Send back"}
           </Button>

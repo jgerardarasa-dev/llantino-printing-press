@@ -3,11 +3,12 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–9 are built (Foundation, Data layer, CRM,
-Pricing engine, Quotations, Job Orders, Tasks + Calendar, HR,
-Accounting, Dashboards + Analytics). Milestone 10 (Polish: notifications,
-global search, mobile pass, Playwright E2E) is intentionally not started
-yet — it's its own future pass.
+**Status:** All 10 milestones in `SPEC.md` §10 are built (Foundation,
+Data layer, CRM, Pricing engine, Quotations, Job Orders, Tasks +
+Calendar, HR, Accounting, Dashboards + Analytics, Polish). The MVP build
+is complete. No live Supabase project has been connected at any point in
+this build — see "Key architectural notes" for what that means for the
+Milestone 10 Playwright suite specifically.
 
 ## Stack
 
@@ -104,6 +105,13 @@ src/
                                claimed the company-wide settings UI yet;
                                Meta Ads' own settings live inline on its
                                page instead, admin-gated — Milestone 9)
+      notifications/           full notification list page — Milestone 10
+      search/route.ts          GET /search — global search API used by
+                               the ⌘K command palette — Milestone 10
+    api/cron/notifications-digest/route.ts  CRON_SECRET-protected route
+                               an external scheduler would hit — no
+                               scheduler is configured in this
+                               environment — Milestone 10
   components/
     ui/                   hand-ported shadcn/ui primitives
     layout/                sidebar, topbar, nav config, breadcrumb
@@ -127,6 +135,11 @@ src/
                              spend form + Meta settings form — Milestone 9
     shared/                DataTable, StageBadge, ComingSoon,
                            CsvExportButton (Milestone 9)
+    search/global-search.tsx  the ⌘K command palette (Milestone 10)
+    layout/notifications-bell.tsx, notifications-list.tsx  in-app
+                             notification dropdown + full list view,
+                             sharing the same mark-read logic
+                             (Milestone 10)
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
     migrations/             drizzle-kit generated SQL + the hand-written
@@ -177,9 +190,26 @@ src/
                                existing badges (Milestone 9)
     constants/roles.ts        role enum, labels, default routes
     validation/entities.ts    Zod schema per entity (drizzle-zod derived)
+    notifications/create.ts    notify()/notifyMany()/notifyRoles() — the
+                               one place every Server Action that needs
+                               to notify someone else calls into
+                               (Milestone 10)
+    notifications/digest.ts    daily email digest content + send —
+                               queries the plain `db` export directly,
+                               not withUserContext (no signed-in user
+                               drives a cron run) — Milestone 10
+    data/notifications.ts      list/unread-count reads for the bell +
+                               /notifications page (Milestone 10)
+    data/search.ts             searchGlobal() — clients/JOs/quotations,
+                               backing GET /search (Milestone 10)
 scripts/
   seed-users.ts             Milestone 0 seed
   seed-data.ts               Milestone 1 seed
+e2e/
+  happy-path.spec.ts         Playwright: lead → quote → approve → JO →
+                             produce → deliver → invoice → paid —
+                             written, never run (Milestone 10; see notes)
+  helpers.ts                  login/logout/advanceStage test helpers
 ```
 
 ## Key architectural notes for whoever builds the next milestone
@@ -450,3 +480,89 @@ scripts/
   reporting queries — there is still no live Supabase project connected
   in this environment, so none of Milestone 9's queries have been run
   against real data; only typecheck/lint/test/build have verified them.
+
+### Milestone 10 — Polish
+
+- **Notifications only fire from a fixed, documented set of Server
+  Action events** — not every mutation in the app. Wired in:
+  lead (re-)assignment, a quotation entering `pending_approval` (notifies
+  every admin/management user) and its later approve/reject (notifies
+  the preparer), a JO going on hold or cancelled (notifies its sales +
+  production owners), a leave request being filed (notifies
+  `LEAVE_APPROVER_ROLES`) and its approve/reject (notifies the employee's
+  linked user, via the new `findUserIdForEmployee` helper), and task
+  (re-)assignment. Every call goes through `notify()`/`notifyMany()`/
+  `notifyRoles()` (`lib/notifications/create.ts`) using the *same*
+  transaction (`tx`) the triggering action is already inside — the
+  notification commits with the state change or not at all. Never
+  self-notifies (the actor performing the action is filtered out).
+- **The email digest queries the plain `db` export, not
+  `withUserContext`.** Every other read/write in this app goes through a
+  signed-in user's RLS context — the digest is the one exception, because
+  it runs from an external scheduler with no signed-in user to drive it.
+  This mirrors the existing "trusted server-only path" carve-out
+  documented on `src/lib/supabase/admin.ts` (seed scripts, the invite-user
+  flow) rather than inventing a new pattern.
+- **No scheduler is configured anywhere in this build.**
+  `GET /api/cron/notifications-digest` is real and working, gated by a
+  `CRON_SECRET` bearer token (fails closed — 503 — if that env var isn't
+  set), but nothing calls it. A real deployment points an external
+  scheduler (Vercel Cron, a GitHub Action on a schedule, cron-job.org,
+  ...) at that URL. Digest emails also silently no-op for a user with
+  nothing to report (no unread notifications and no live summary items)
+  rather than sending an empty "you're all caught up" email every day.
+- **Global search covers exactly what SPEC asks for — clients, JOs,
+  quotations — not leads, tasks, or anything else.** `searchGlobal()`
+  (`lib/data/search.ts`) runs three independent `ilike` queries through
+  the normal RLS-scoped `withUserContext`, so a search never surfaces a
+  row the searching user couldn't otherwise see. The command palette
+  (`components/search/global-search.tsx`) is mounted once in the topbar
+  — the one place in the tree that owns the ⌘K/Ctrl+K keydown listener —
+  and hits a plain Route Handler (`GET /search`) rather than a Server
+  Action, since it needs a debounced `fetch` from a client component, not
+  a form submission.
+- **Two small `data-testid` attributes were added purely for E2E
+  stability** (`stage-advance-trigger` on the stepper's current-stage
+  button, `advance-stage-submit` on the advance dialog's submit button)
+  — the only stage-advance control in the whole JO detail page that has
+  no other reliable accessible name to select by (its label is just a
+  stage number/checkmark). Nothing else in the app needed one; every
+  other flow in `e2e/happy-path.spec.ts` selects by role/label/text the
+  same way a user would.
+- **Mobile pass was a targeted audit, not a rewrite.** Most of the app
+  was already mobile-safe from earlier milestones without anyone calling
+  it out explicitly: both kanban boards (leads, tasks) use
+  `grid-cols-1 sm:grid-cols-2 …` so they stack into a single scrollable
+  column below `sm` instead of scrolling sideways; the JO stage stepper
+  already had `overflow-x-auto` + `min-w-max`; the calendar's filter bar
+  already used `flex-wrap`. The three genuinely cramped spots found and
+  fixed were 3-column grids that packed a full label + input into ~100px
+  at 375px (quotation builder's quantity tiers, the box-spec builder's
+  length/width/height, the analytics retention KPI row) — each changed to
+  `grid-cols-1 sm:grid-cols-3`. The pervasive `grid-cols-2` pattern used
+  in nearly every Sheet/Dialog form across all ten milestones was
+  deliberately left alone — two short fields side by side (date + amount,
+  first name + last name) is a standard, workable mobile form pattern,
+  and touching ~30 files for a marginal gain wasn't a good risk/reward
+  trade for a "polish" pass.
+- **The Playwright suite is written, not run — same honesty rule as
+  every other milestone's untested-against-real-data disclosure, just
+  more consequential here because "run the tests" is literally the
+  deliverable's name.** This sandbox has no live Supabase project (true
+  for the entire build, see every prior milestone's notes above) and the
+  app hard-requires one for auth and every query, so there is no way to
+  actually execute `pnpm test:e2e` here. `e2e/happy-path.spec.ts` was
+  written by reading the real source of every screen it drives (the
+  login form, lead kanban, quotation builder, JO stepper + advance
+  dialog + QC checklist + deliveries panel, invoice generation, payment
+  recording) so the selectors and flow should be *close*, but "close" is
+  not "verified" — expect to need small selector tweaks the first time
+  this actually runs against a seeded database
+  (`pnpm seed:users && pnpm seed:data`, then `pnpm test:e2e`). The
+  delivered→invoiced and invoiced→paid transitions are deliberately
+  *not* driven through the stage stepper in the test — generating an
+  invoice and recording a fully-settling payment already call
+  `advanceJobOrderStage` themselves (documented back in the Milestone 8
+  notes above), so the test exercises the real user-facing path instead
+  of a stage-stepper shortcut that a real user wouldn't take at that
+  point in the flow.

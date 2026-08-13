@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { withUserContext } from "@/db/client";
 import { tasks } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
+import { notify } from "@/lib/notifications/create";
 import { taskFormSchema, type RecurrencePreset } from "@/lib/validation/forms/task-form";
 
 export type ActionState = { error?: string; success?: boolean };
@@ -33,10 +34,24 @@ export async function saveTask(_prevState: ActionState, formData: FormData): Pro
 
   try {
     await withUserContext(user.id, async (tx) => {
+      let previousAssignee: string | null = null;
+
       if (v.id) {
-        await tx.update(tasks).set({ ...values, updatedAt: new Date() }).where(eq(tasks.id, v.id!));
+        const [existing] = await tx.select({ assigneeId: tasks.assigneeId }).from(tasks).where(eq(tasks.id, v.id)).limit(1);
+        previousAssignee = existing?.assigneeId ?? null;
+        await tx.update(tasks).set({ ...values, updatedAt: new Date() }).where(eq(tasks.id, v.id));
       } else {
         await tx.insert(tasks).values({ ...values, status: "todo", createdBy: user.id });
+      }
+
+      if (values.assigneeId && values.assigneeId !== previousAssignee && values.assigneeId !== user.id) {
+        await notify(tx, {
+          userId: values.assigneeId,
+          type: "task_assigned",
+          title: `Task assigned: ${values.title}`,
+          body: values.dueDate ? `Due ${values.dueDate.toISOString().slice(0, 10)}` : undefined,
+          linkUrl: "/tasks",
+        });
       }
     });
   } catch (e) {

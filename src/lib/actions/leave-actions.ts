@@ -7,6 +7,7 @@ import { withUserContext } from "@/db/client";
 import { employees, leaveBalances, leaveRequests } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { assertRole, LEAVE_APPROVER_ROLES } from "@/lib/auth/permissions";
+import { findUserIdForEmployee, notify, notifyRoles } from "@/lib/notifications/create";
 import { DEFAULT_LEAVE_ENTITLEMENT_DAYS, leaveFormSchema } from "@/lib/validation/forms/leave-form";
 
 export type ActionState = { error?: string; success?: boolean };
@@ -44,6 +45,8 @@ export async function fileLeaveRequest(_prevState: ActionState, formData: FormDa
         }
       }
 
+      const [employeeRow] = await tx.select({ fullName: employees.fullName }).from(employees).where(eq(employees.id, v.employeeId)).limit(1);
+
       await tx.insert(leaveRequests).values({
         employeeId: v.employeeId,
         leaveType: v.leaveType,
@@ -53,6 +56,13 @@ export async function fileLeaveRequest(_prevState: ActionState, formData: FormDa
         reason: v.reason || null,
         status: "pending",
         createdBy: user.id,
+      });
+
+      await notifyRoles(tx, LEAVE_APPROVER_ROLES, {
+        type: "leave_submitted",
+        title: `Leave request: ${employeeRow?.fullName ?? "An employee"}`,
+        body: `${v.leaveType.replace("_", " ")}, ${v.startDate} – ${v.endDate}`,
+        linkUrl: "/hr/leave",
       });
     });
   } catch (e) {
@@ -113,6 +123,15 @@ export async function approveLeaveRequest(leaveRequestId: string): Promise<Actio
           createdBy: user.id,
         });
       }
+
+      const employeeUserId = await findUserIdForEmployee(tx, request.employeeId);
+      await notify(tx, {
+        userId: employeeUserId,
+        type: "leave_decided",
+        title: "Leave request approved",
+        body: `${request.startDate} – ${request.endDate}`,
+        linkUrl: "/hr/leave",
+      });
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't approve the leave request." };
@@ -132,10 +151,23 @@ export async function rejectLeaveRequest(leaveRequestId: string): Promise<Action
   }
 
   await withUserContext(user.id, async (tx) => {
+    const [request] = await tx.select().from(leaveRequests).where(eq(leaveRequests.id, leaveRequestId)).limit(1);
+
     await tx
       .update(leaveRequests)
       .set({ status: "rejected", approvedBy: user.id, approvedAt: new Date(), updatedAt: new Date() })
       .where(eq(leaveRequests.id, leaveRequestId));
+
+    if (request) {
+      const employeeUserId = await findUserIdForEmployee(tx, request.employeeId);
+      await notify(tx, {
+        userId: employeeUserId,
+        type: "leave_decided",
+        title: "Leave request rejected",
+        body: `${request.startDate} – ${request.endDate}`,
+        linkUrl: "/hr/leave",
+      });
+    }
   });
 
   revalidatePath("/hr/leave");

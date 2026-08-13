@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { assertRole, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
 import { generateJoNumber } from "@/lib/data/job-orders";
 import { assertValidTransition, type TransitionGateContext } from "@/lib/job-orders/state-machine";
+import { notifyMany } from "@/lib/notifications/create";
 import type { JobOrderStage } from "@/lib/constants/job-order-stages";
 import type { UserRole } from "@/lib/constants/roles";
 import { QC_CHECKLIST_TEMPLATE } from "@/lib/job-orders/qc-checklist-template";
@@ -187,10 +188,25 @@ export async function toggleJobOrderHold(jobOrderId: string, isOnHold: boolean, 
   }
 
   await withUserContext(user.id, async (tx) => {
+    const [jo] = await tx.select().from(jobOrders).where(eq(jobOrders.id, jobOrderId)).limit(1);
+
     await tx
       .update(jobOrders)
       .set({ isOnHold, holdReason: isOnHold ? holdReason : null, updatedAt: new Date() })
       .where(eq(jobOrders.id, jobOrderId));
+
+    if (jo && isOnHold) {
+      await notifyMany(
+        tx,
+        [jo.salesOwnerId, jo.productionOwnerId].filter((id) => id !== user.id),
+        {
+          type: "job_order_hold",
+          title: `${jo.joNumber} put on hold`,
+          body: holdReason,
+          linkUrl: `/job-orders/${jobOrderId}`,
+        }
+      );
+    }
   });
 
   revalidatePath(`/job-orders/${jobOrderId}`);
@@ -219,6 +235,17 @@ export async function cancelJobOrder(jobOrderId: string, reason: string): Promis
         .update(jobOrders)
         .set({ stage: "cancelled", cancelledReason: reason, isOnHold: false, updatedAt: new Date() })
         .where(eq(jobOrders.id, jobOrderId));
+
+      await notifyMany(
+        tx,
+        [jo.salesOwnerId, jo.productionOwnerId].filter((id) => id !== user.id),
+        {
+          type: "job_order_cancelled",
+          title: `${jo.joNumber} cancelled`,
+          body: reason,
+          linkUrl: `/job-orders/${jobOrderId}`,
+        }
+      );
     });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't cancel the job order." };

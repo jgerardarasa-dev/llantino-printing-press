@@ -278,7 +278,7 @@ export default async function AnalyticsPage({
           <CardTitle>Client retention / repeat order rate</CardTitle>
           <p className="text-xs text-muted-foreground">All-time — every non-cancelled job order, regardless of date range above.</p>
         </CardHeader>
-        <CardContent className="grid grid-cols-3 gap-3">
+        <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <KpiCard label="Clients with orders" value={String(retention.clientsWithOrders)} />
           <KpiCard label="Repeat clients (2+ JOs)" value={String(retention.repeatClients)} />
           <KpiCard

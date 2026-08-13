@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Bell, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 
 import { logout } from "@/lib/actions/auth-actions";
 import { ROLE_LABELS, type UserRole } from "@/lib/constants/roles";
 import type { NavSection } from "@/components/layout/nav-items";
+import type { NotificationRow } from "@/lib/data/notifications";
+import { GlobalSearch } from "@/components/search/global-search";
+import { NotificationsBell } from "@/components/layout/notifications-bell";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { BreadcrumbNav } from "@/components/layout/breadcrumb-nav";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -34,9 +37,13 @@ function initials(name: string) {
 export function Topbar({
   navSections,
   user,
+  notifications,
+  unreadCount,
 }: {
   navSections: NavSection[];
   user: { fullName: string; role: UserRole };
+  notifications: NotificationRow[];
+  unreadCount: number;
 }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -64,9 +71,8 @@ export function Topbar({
         <BreadcrumbNav />
       </div>
 
-      <Button variant="ghost" size="icon" aria-label="Notifications">
-        <Bell className="size-4.5" />
-      </Button>
+      <GlobalSearch />
+      <NotificationsBell initialNotifications={notifications} initialUnreadCount={unreadCount} />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

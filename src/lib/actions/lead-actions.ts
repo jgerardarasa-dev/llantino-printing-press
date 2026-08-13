@@ -7,6 +7,7 @@ import { withUserContext } from "@/db/client";
 import { clients, leads } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { assertRole, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
+import { notify } from "@/lib/notifications/create";
 import { leadInsertSchema } from "@/lib/validation/entities";
 import { LEAD_STAGES, type LeadStage } from "@/lib/constants/lead-stages";
 
@@ -38,10 +39,25 @@ export async function saveLead(_prevState: ActionState, formData: FormData): Pro
 
   try {
     await withUserContext(user.id, async (tx) => {
+      let previousAssignee: string | null = null;
+
       if (id) {
+        const [existing] = await tx.select({ assignedTo: leads.assignedTo }).from(leads).where(eq(leads.id, id)).limit(1);
+        previousAssignee = existing?.assignedTo ?? null;
         await tx.update(leads).set({ ...parsed.data, updatedAt: new Date() }).where(eq(leads.id, id));
       } else {
         await tx.insert(leads).values({ ...parsed.data, createdBy: user.id });
+      }
+
+      // Only notify on a genuine (re-)assignment, not every edit to an already-assigned lead.
+      if (parsed.data.assignedTo && parsed.data.assignedTo !== previousAssignee && parsed.data.assignedTo !== user.id) {
+        await notify(tx, {
+          userId: parsed.data.assignedTo,
+          type: "lead_assigned",
+          title: `Lead assigned: ${parsed.data.name}`,
+          body: parsed.data.company || undefined,
+          linkUrl: "/leads",
+        });
       }
     });
   } catch (e) {

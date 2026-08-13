@@ -10,6 +10,7 @@ import { assertRole, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
 import { getClientById } from "@/lib/data/clients";
 import { getBoxSpecWithMaterial, getProcessRatesMap } from "@/lib/data/materials";
 import { generateQuoteNumber, listClientJobOrdersForRepeat } from "@/lib/data/quotations";
+import { notify, notifyRoles } from "@/lib/notifications/create";
 import { computeQuote } from "@/lib/pricing/compute-quote";
 import { computeQuoteTiers } from "@/lib/pricing/quantity-tiers";
 import type { QuoteBreakdown, QuoteInput } from "@/lib/pricing/types";
@@ -253,6 +254,11 @@ export async function sendOrSubmitQuotation(quotationId: string): Promise<Action
 
       if (quotation.status === "draft" && breakdown?.requiresApproval) {
         await tx.update(quotations).set({ status: "pending_approval", updatedAt: new Date() }).where(eq(quotations.id, quotationId));
+        await notifyRoles(tx, [...APPROVER_ROLES], {
+          type: "quotation_pending_approval",
+          title: `Quotation ${quotation.quoteNumber} needs approval`,
+          linkUrl: `/quotations/${quotationId}`,
+        });
       } else {
         await tx.update(quotations).set({ status: "sent", sentAt: new Date(), updatedAt: new Date() }).where(eq(quotations.id, quotationId));
       }
@@ -275,10 +281,21 @@ export async function approveQuotation(quotationId: string): Promise<ActionState
   }
 
   await withUserContext(user.id, async (tx) => {
+    const [quotation] = await tx.select().from(quotations).where(eq(quotations.id, quotationId)).limit(1);
+
     await tx
       .update(quotations)
       .set({ status: "approved", approvedBy: user.id, approvedAt: new Date(), updatedAt: new Date() })
       .where(eq(quotations.id, quotationId));
+
+    if (quotation && quotation.preparedBy !== user.id) {
+      await notify(tx, {
+        userId: quotation.preparedBy,
+        type: "quotation_decided",
+        title: `Quotation ${quotation.quoteNumber} approved`,
+        linkUrl: `/quotations/${quotationId}`,
+      });
+    }
   });
 
   revalidatePath(`/quotations/${quotationId}`);
@@ -296,10 +313,22 @@ export async function rejectQuotation(quotationId: string, reason: string): Prom
   if (!reason.trim()) return { error: "A rejection reason is required." };
 
   await withUserContext(user.id, async (tx) => {
+    const [quotation] = await tx.select().from(quotations).where(eq(quotations.id, quotationId)).limit(1);
+
     await tx
       .update(quotations)
       .set({ status: "rejected", rejectedReason: reason, updatedAt: new Date() })
       .where(eq(quotations.id, quotationId));
+
+    if (quotation && quotation.preparedBy !== user.id) {
+      await notify(tx, {
+        userId: quotation.preparedBy,
+        type: "quotation_decided",
+        title: `Quotation ${quotation.quoteNumber} rejected`,
+        body: reason,
+        linkUrl: `/quotations/${quotationId}`,
+      });
+    }
   });
 
   revalidatePath(`/quotations/${quotationId}`);

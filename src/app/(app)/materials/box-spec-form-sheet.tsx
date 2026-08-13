@@ -138,7 +138,7 @@ export function BoxSpecFormSheet({
             </Select>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="lengthMm">Length (mm)</Label>
               <Input id="lengthMm" name="lengthMm" type="number" step="0.1" value={lengthMm} onChange={(e) => setLengthMm(e.target.value)} required />

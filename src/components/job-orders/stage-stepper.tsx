@@ -55,6 +55,7 @@ export function StageStepper({
                 type="button"
                 disabled={!clickable}
                 onClick={onAdvanceClick}
+                data-testid={isCurrent ? "stage-advance-trigger" : undefined}
                 className={cn(
                   "flex w-28 flex-col items-center gap-1 rounded-md px-1 py-1.5 text-center",
                   clickable && "cursor-pointer hover:bg-accent"

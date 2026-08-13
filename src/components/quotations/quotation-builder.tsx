@@ -331,7 +331,7 @@ export function QuotationBuilder({
           <CardHeader>
             <CardTitle>Quantities</CardTitle>
           </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-3">
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="q1">Quantity (primary)</Label>
               <Input id="q1" type="number" min={1} value={quantity1} onChange={(e) => setQuantity1(e.target.value)} />
