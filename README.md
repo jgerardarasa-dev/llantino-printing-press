@@ -3,10 +3,10 @@
 Internal operations platform for Llantino Printing Press. See
 [`SPEC.md`](./SPEC.md) for the full build specification.
 
-**Status:** Milestones 0–5 are built (Foundation, Data layer, CRM,
-Pricing engine, Quotations, Job Orders). Everything else in `SPEC.md`
-§10 is intentionally not started yet — each remaining milestone (Tasks +
-Calendar, HR, Accounting, Dashboards, Polish) is its own future pass.
+**Status:** Milestones 0–6 are built (Foundation, Data layer, CRM,
+Pricing engine, Quotations, Job Orders, Tasks + Calendar). Everything
+else in `SPEC.md` §10 is intentionally not started yet — each remaining
+milestone (HR, Accounting, Dashboards, Polish) is its own future pass.
 Nav links to those areas render a "coming in Milestone N" screen rather
 than a broken page.
 
@@ -88,7 +88,10 @@ src/
       deliveries/[id]/pdf/     DR PDF route (the /deliveries list page
                                itself is still a placeholder — delivery
                                management lives on the JO detail page)
-      tasks/ calendar/ hr/* accounting/* analytics/ settings/
+      tasks/                  board (kanban/list/my-tasks) — Milestone 6
+      calendar/                unified FullCalendar + JSON feed route
+                               reading v_calendar_feed — Milestone 6
+      hr/* accounting/* analytics/ settings/
                           — placeholder pages, one per future milestone
   components/
     ui/                   hand-ported shadcn/ui primitives
@@ -100,6 +103,8 @@ src/
                              production logs, materials, checklist,
                              deliveries, activity timeline, comments
                              (Milestone 5)
+    calendar/                FullCalendar wrapper, layer toggles, source
+                             colour map, new-event dialog (Milestone 6)
     shared/                DataTable, StageBadge, ComingSoon
   db/
     schema/                Drizzle tables, one file per domain (SPEC §5)
@@ -240,3 +245,25 @@ scripts/
   `totalCentavos`, and non-name client fields before the Server
   Component ever renders), not just by hiding a column in the UI —
   the strongest of SPEC §4's three enforcement layers for this rule.
+- **`v_calendar_feed` is a plain SQL view queried via raw `db.execute()`**,
+  not a Drizzle-modeled table — it's read-only and its shape is a UNION
+  across six different tables, so there's no schema to declare. RLS on
+  the *underlying* tables still applies per viewer when queried through
+  the view (Postgres evaluates row-security policies using the querying
+  session's claims, not the view owner's), so a production-role request
+  still can't see e.g. a client's invoice-due rows they weren't allowed
+  to see directly. "JO stage deadlines" (named alongside "JO target
+  delivery dates" in SPEC's calendar rule) isn't a separate feed source
+  — job_orders has no per-stage deadline column, only
+  `target_delivery_date`, so that one source stands in for both.
+- **Recurring tasks use simple presets (`daily`/`weekly`/`monthly`), not
+  real RRULE parsing.** `tasks.recurrence_rule` is schema'd as free text
+  for an eventual iCal RRULE string; the MVP stores one of three presets
+  and advances the due date by a fixed offset when a recurring task is
+  marked done, spawning the next occurrence. Good enough for "restock
+  ink every Monday," not a general-purpose scheduler.
+- **The calendar's layer toggles and department filter are client-side**,
+  filtering an already-fetched event array rather than making a new
+  request per checkbox — the feed route is only re-hit when the visible
+  date range changes (FullCalendar's `datesSet`) or a new manual event
+  is added.

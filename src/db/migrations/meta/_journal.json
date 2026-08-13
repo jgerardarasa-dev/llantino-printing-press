@@ -22,6 +22,13 @@
       "when": 1786628388107,
       "tag": "0002_jo_stage_history_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786629350501,
+      "tag": "0003_v_calendar_feed_view",
+      "breakpoints": true
     }
   ]
 }
