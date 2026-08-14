@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Factory } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { NAV_ICONS } from "@/components/layout/nav-icons";
 import type { NavSection } from "@/components/layout/nav-items";
 
 export function SidebarNav({
@@ -37,7 +38,7 @@ export function SidebarNav({
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
+                const Icon = NAV_ICONS[item.icon];
                 return (
                   <li key={item.href}>
                     <Link
