@@ -6,6 +6,7 @@ import { AD_SPEND_ROLES } from "@/lib/auth/permissions";
 import { getAdSpendSummary, listAdSpend } from "@/lib/data/ad-spend";
 import { defaultTwelveMonthRange } from "@/lib/data/analytics";
 import { getSettings } from "@/lib/settings/get-settings";
+import { buildCsv } from "@/lib/csv";
 import { formatCentavos, formatDate } from "@/lib/format";
 import { AdSpendFormDialog } from "@/components/analytics/ad-spend-form-dialog";
 import { MetaAdsSettingsForm } from "@/components/analytics/meta-ads-settings-form";
@@ -91,16 +92,15 @@ export default async function MetaAdsPage({
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle>Monthly spend entries</CardTitle>
           <CsvExportButton
-            data={entries}
-            filename="meta-ad-spend.csv"
-            columns={[
+            csv={buildCsv(entries, [
               { header: "Month", accessor: (r) => r.month },
               { header: "Platform", accessor: (r) => r.platform },
               { header: "Campaign", accessor: (r) => r.campaignName ?? "" },
               { header: "Spend (PHP)", accessor: (r) => (r.spendCentavos / 100).toFixed(2) },
               { header: "Leads generated", accessor: (r) => r.leadsGenerated },
               { header: "Notes", accessor: (r) => r.notes ?? "" },
-            ]}
+            ])}
+            filename="meta-ad-spend.csv"
           />
         </CardHeader>
         <CardContent>

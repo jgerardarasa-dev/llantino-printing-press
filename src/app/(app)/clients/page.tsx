@@ -5,8 +5,7 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { COMMERCIAL_ROLES, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
 import { listClients } from "@/lib/data/clients";
 import { listAssignableOwners } from "@/lib/data/users";
-import { DataTable } from "@/components/shared/data-table";
-import { clientColumns } from "./columns";
+import { ClientsTable } from "./columns";
 import { ClientFormSheet } from "./client-form-sheet";
 
 export default async function ClientsPage() {
@@ -37,8 +36,7 @@ export default async function ClientsPage() {
         {canEdit && <ClientFormSheet owners={owners} />}
       </div>
 
-      <DataTable
-        columns={clientColumns}
+      <ClientsTable
         data={clientRows}
         searchPlaceholder="Search clients..."
         emptyState={

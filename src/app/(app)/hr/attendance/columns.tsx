@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { AttendanceRow } from "@/lib/data/hr";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "warning" | "destructive" | "outline"> = {
   present: "default",
@@ -28,3 +29,16 @@ export const attendanceColumns: ColumnDef<AttendanceRow, unknown>[] = [
   { accessorKey: "hoursWorked", header: "Hours", cell: ({ row }) => <span className="tabular-nums">{row.original.hoursWorked ?? "—"}</span> },
   { accessorKey: "overtimeHours", header: "OT", cell: ({ row }) => <span className="tabular-nums">{row.original.overtimeHours}</span> },
 ];
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function AttendanceTable({
+  data,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: AttendanceRow[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={attendanceColumns} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
+}

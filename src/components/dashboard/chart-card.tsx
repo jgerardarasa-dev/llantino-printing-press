@@ -5,11 +5,7 @@ import { BarChart3, Table as TableIcon } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CsvExportButton } from "@/components/shared/csv-export-button";
-import type { CsvColumn } from "@/lib/csv";
-
-type TableColumn<T> = { header: string; cell: (row: T) => React.ReactNode; align?: "right" };
 
 /**
  * Every analytics/dashboard visual goes through this shell: a title, a
@@ -17,23 +13,28 @@ type TableColumn<T> = { header: string; cell: (row: T) => React.ReactNode; align
  * chart — a chart/table toggle so the same data is always available as
  * plain rows (dataviz skill accessibility pass: "a table view exists").
  * When there's no `children` (a section that's a table by design, e.g.
- * "revenue by client"), it just renders the table with no toggle.
+ * "revenue by client"), it just renders `table` with no toggle.
+ *
+ * `csv` and `table` arrive already built (a string, and rendered JSX,
+ * respectively) — see components/shared/simple-data-table.tsx and
+ * lib/csv.ts's buildCsv(). The calling Server Component page builds
+ * both from its column definitions; ChartCard itself never sees a
+ * column-accessor function, since a function can't cross the
+ * Server -> Client prop boundary this component sits behind.
  */
-export function ChartCard<T>({
+export function ChartCard({
   title,
   description,
   csvFilename,
-  csvColumns,
-  data,
-  tableColumns,
+  csv,
+  table,
   children,
 }: {
   title: string;
   description?: string;
   csvFilename: string;
-  csvColumns: CsvColumn<T>[];
-  data: T[];
-  tableColumns: TableColumn<T>[];
+  csv: string;
+  table: React.ReactNode;
   children?: React.ReactNode;
 }) {
   const [view, setView] = useState<"chart" | "table">(children ? "chart" : "table");
@@ -68,47 +69,10 @@ export function ChartCard<T>({
               </Button>
             </>
           )}
-          <CsvExportButton data={data} columns={csvColumns} filename={csvFilename} />
+          <CsvExportButton csv={csv} filename={csvFilename} />
         </div>
       </CardHeader>
-      <CardContent>
-        {view === "chart" && children ? (
-          children
-        ) : (
-          <div className="rounded-lg border border-border">
-            <Table className="text-[13px]">
-              <TableHeader>
-                <TableRow>
-                  {tableColumns.map((c) => (
-                    <TableHead key={c.header} className={c.align === "right" ? "text-right" : undefined}>
-                      {c.header}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={tableColumns.length} className="h-20 text-center text-sm text-muted-foreground">
-                      No data for this range.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  data.map((row, i) => (
-                    <TableRow key={i}>
-                      {tableColumns.map((c) => (
-                        <TableCell key={c.header} className={c.align === "right" ? "text-right tabular-nums" : undefined}>
-                          {c.cell(row)}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-      </CardContent>
+      <CardContent>{view === "chart" && children ? children : table}</CardContent>
     </Card>
   );
 }

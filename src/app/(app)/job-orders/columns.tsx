@@ -7,6 +7,7 @@ import { AlertTriangle } from "lucide-react";
 import type { JobOrderListRow } from "@/lib/data/job-orders";
 import { formatCentavos, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 import { StageBadge } from "@/components/shared/stage-badge";
 
 const PRIORITY_VARIANT: Record<string, "outline" | "warning" | "destructive"> = {
@@ -77,3 +78,16 @@ export const jobOrderColumns: ColumnDef<JobOrderListRow, unknown>[] = [
   },
   { accessorKey: "productionOwnerName", header: "Production owner", cell: ({ row }) => row.original.productionOwnerName || <span className="text-muted-foreground">Unassigned</span> },
 ];
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function JobOrdersTable({
+  data,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: JobOrderListRow[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={jobOrderColumns} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
+}

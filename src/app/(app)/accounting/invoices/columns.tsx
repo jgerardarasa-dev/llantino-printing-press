@@ -7,6 +7,7 @@ import { bucketForDueDate } from "@/lib/accounting/aging";
 import type { InvoiceListRow } from "@/lib/data/accounting";
 import { formatCentavos, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 
 const STATUS_VARIANT: Record<string, "outline" | "secondary" | "warning" | "success" | "destructive"> = {
   draft: "outline",
@@ -43,3 +44,16 @@ export const invoiceColumns: ColumnDef<InvoiceListRow, unknown>[] = [
   { accessorKey: "totalCentavos", header: "Total", cell: ({ row }) => <span className="tabular-nums">{formatCentavos(row.original.totalCentavos)}</span> },
   { accessorKey: "balanceCentavos", header: "Balance", cell: ({ row }) => <span className="tabular-nums font-medium">{formatCentavos(row.original.balanceCentavos)}</span> },
 ];
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function InvoicesTable({
+  data,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: InvoiceListRow[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={invoiceColumns} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
+}

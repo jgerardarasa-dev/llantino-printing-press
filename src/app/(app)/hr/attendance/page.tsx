@@ -4,10 +4,9 @@ import { ClipboardList } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { HR_OR_FINANCE_ROLES, HR_ROLES } from "@/lib/auth/permissions";
 import { listAttendance, listEmployees } from "@/lib/data/hr";
-import { DataTable } from "@/components/shared/data-table";
 import { AttendanceForm } from "./attendance-form";
 import { AttendanceImport } from "./attendance-import";
-import { attendanceColumns } from "./columns";
+import { AttendanceTable } from "./columns";
 
 export default async function AttendancePage() {
   const user = await getCurrentUser();
@@ -42,8 +41,7 @@ export default async function AttendancePage() {
           )}
         </div>
         <div className="lg:col-span-3">
-          <DataTable
-            columns={attendanceColumns}
+          <AttendanceTable
             data={attendanceRows}
             searchPlaceholder="Search attendance..."
             emptyState={<span className="text-sm text-muted-foreground">No attendance records yet.</span>}

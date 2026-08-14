@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { softDeleteBoxSpec } from "@/lib/actions/box-spec-actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/shared/data-table";
 import type { BoxSpecRow, MaterialRow } from "@/lib/data/materials";
 import { BoxSpecFormSheet } from "./box-spec-form-sheet";
 
@@ -109,4 +110,21 @@ export function boxSpecsColumns(
       cell: ({ row }) => <RowActions boxSpec={row.original} materials={materials} canEdit={canEdit} />,
     },
   ];
+}
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function BoxSpecsTable({
+  data,
+  materials,
+  canEdit,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: BoxSpecRow[];
+  materials: Pick<MaterialRow, "id" | "name" | "sheetWidthIn" | "sheetLengthIn">[];
+  canEdit: boolean;
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={boxSpecsColumns(materials, canEdit)} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
 }

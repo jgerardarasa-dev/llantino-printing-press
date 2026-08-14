@@ -6,6 +6,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import type { QuotationListRow } from "@/lib/data/quotations";
 import { formatCentavos, formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 
 const STATUS_VARIANT: Record<string, "default" | "secondary" | "outline" | "warning" | "destructive" | "success"> = {
   draft: "outline",
@@ -67,3 +68,16 @@ export const quotationColumns: ColumnDef<QuotationListRow, unknown>[] = [
     cell: ({ row }) => <span className="tabular-nums text-muted-foreground">{formatDate(row.original.createdAt)}</span>,
   },
 ];
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function QuotationsTable({
+  data,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: QuotationListRow[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={quotationColumns} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
+}

@@ -4,11 +4,10 @@ import { ClipboardList } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { listTasks } from "@/lib/data/tasks";
 import { listActiveUsers } from "@/lib/data/users";
-import { DataTable } from "@/components/shared/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TaskFormSheet } from "./task-form-sheet";
 import { TaskKanban } from "./task-kanban";
-import { taskColumns } from "./columns";
+import { TasksTable } from "./columns";
 
 export default async function TasksPage() {
   const user = await getCurrentUser();
@@ -46,7 +45,7 @@ export default async function TasksPage() {
           </TabsContent>
 
           <TabsContent value="list" className="mt-4">
-            <DataTable columns={taskColumns} data={allTasks} searchPlaceholder="Search tasks..." />
+            <TasksTable data={allTasks} searchPlaceholder="Search tasks..." />
           </TabsContent>
 
           <TabsContent value="mine" className="mt-4">

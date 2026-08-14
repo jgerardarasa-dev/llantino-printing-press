@@ -4,8 +4,7 @@ import { Receipt } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { ACCOUNTING_WRITE_ROLES, INVOICE_READ_ROLES } from "@/lib/auth/permissions";
 import { listDeliveredJobOrdersAwaitingInvoice, listInvoices } from "@/lib/data/accounting";
-import { DataTable } from "@/components/shared/data-table";
-import { invoiceColumns } from "./columns";
+import { InvoicesTable } from "./columns";
 import { GenerateInvoiceDialog } from "./generate-invoice-dialog";
 import { AgingSummary } from "@/components/accounting/aging-summary";
 
@@ -43,8 +42,7 @@ export default async function InvoicesPage() {
 
       <AgingSummary invoices={invoiceRows} />
 
-      <DataTable
-        columns={invoiceColumns}
+      <InvoicesTable
         data={invoiceRows}
         searchPlaceholder="Search invoices..."
         emptyState={<span className="text-sm text-muted-foreground">No invoices yet.</span>}

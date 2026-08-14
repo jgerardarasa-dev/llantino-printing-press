@@ -5,8 +5,7 @@ import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { HR_OR_FINANCE_ROLES, HR_ROLES } from "@/lib/auth/permissions";
 import { listEmployees } from "@/lib/data/hr";
 import { listActiveUsers } from "@/lib/data/users";
-import { DataTable } from "@/components/shared/data-table";
-import { employeeColumns } from "./columns";
+import { EmployeesTable } from "./columns";
 import { EmployeeFormSheet } from "./employee-form-sheet";
 
 export default async function EmployeesPage() {
@@ -36,9 +35,9 @@ export default async function EmployeesPage() {
         {canEdit && <EmployeeFormSheet users={userOptions} />}
       </div>
 
-      <DataTable
-        columns={employeeColumns(userOptions)}
+      <EmployeesTable
         data={employeeRows}
+        users={userOptions}
         searchPlaceholder="Search employees..."
         emptyState={<span className="text-sm text-muted-foreground">No employees yet.</span>}
       />

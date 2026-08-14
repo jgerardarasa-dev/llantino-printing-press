@@ -4,11 +4,10 @@ import { Boxes, Layers, Ruler } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { BOX_SPEC_ROLES, PRICING_ADMIN_ROLES } from "@/lib/auth/permissions";
 import { listBoxSpecs, listMaterials, listProcessRates } from "@/lib/data/materials";
-import { DataTable } from "@/components/shared/data-table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { materialsColumns } from "./materials-columns";
-import { processRatesColumns } from "./process-rates-columns";
-import { boxSpecsColumns } from "./box-specs-columns";
+import { MaterialsTable } from "./materials-columns";
+import { ProcessRatesTable } from "./process-rates-columns";
+import { BoxSpecsTable } from "./box-specs-columns";
 import { MaterialFormSheet } from "./material-form-sheet";
 import { ProcessRateFormSheet } from "./process-rate-form-sheet";
 import { BoxSpecFormSheet } from "./box-spec-form-sheet";
@@ -59,9 +58,9 @@ export default async function MaterialsPage() {
             <p className="text-sm text-muted-foreground">{materials.length} materials</p>
             {canEditPricing && <MaterialFormSheet />}
           </div>
-          <DataTable
-            columns={materialsColumns(canEditPricing)}
+          <MaterialsTable
             data={materials}
+            canEdit={canEditPricing}
             searchPlaceholder="Search materials..."
             emptyState={<span className="text-sm text-muted-foreground">No materials yet.</span>}
           />
@@ -72,9 +71,9 @@ export default async function MaterialsPage() {
             <p className="text-sm text-muted-foreground">{processRates.length} process rates</p>
             {canEditPricing && <ProcessRateFormSheet />}
           </div>
-          <DataTable
-            columns={processRatesColumns(canEditPricing)}
+          <ProcessRatesTable
             data={processRates}
+            canEdit={canEditPricing}
             searchPlaceholder="Search process rates..."
             emptyState={<span className="text-sm text-muted-foreground">No process rates yet.</span>}
           />
@@ -85,9 +84,10 @@ export default async function MaterialsPage() {
             <p className="text-sm text-muted-foreground">{boxSpecs.length} box specs</p>
             {canEditBoxSpecs && <BoxSpecFormSheet materials={materialOptions} />}
           </div>
-          <DataTable
-            columns={boxSpecsColumns(materialOptions, canEditBoxSpecs)}
+          <BoxSpecsTable
             data={boxSpecs}
+            materials={materialOptions}
+            canEdit={canEditBoxSpecs}
             searchPlaceholder="Search box specs..."
             emptyState={
               <span className="text-sm text-muted-foreground">

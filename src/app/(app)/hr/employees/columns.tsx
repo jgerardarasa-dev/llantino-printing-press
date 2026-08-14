@@ -9,6 +9,7 @@ import { softDeleteEmployee } from "@/lib/actions/employee-actions";
 import { formatCentavos } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/shared/data-table";
 import type { EmployeeRow } from "@/lib/data/hr";
 import { EmployeeFormSheet } from "./employee-form-sheet";
 
@@ -83,4 +84,19 @@ export function employeeColumns(users: { id: string; fullName: string }[]): Colu
       cell: ({ row }) => <RowActions employee={row.original} users={users} />,
     },
   ];
+}
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function EmployeesTable({
+  data,
+  users,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: EmployeeRow[];
+  users: { id: string; fullName: string }[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={employeeColumns(users)} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
 }

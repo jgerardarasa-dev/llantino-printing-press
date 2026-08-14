@@ -9,6 +9,7 @@ import { softDeleteProcessRate } from "@/lib/actions/process-rate-actions";
 import { formatCentavos } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/shared/data-table";
 import type { ProcessRateRow } from "@/lib/data/materials";
 import { ProcessRateFormSheet } from "./process-rate-form-sheet";
 
@@ -85,4 +86,19 @@ export function processRatesColumns(canEdit: boolean): ColumnDef<ProcessRateRow,
       cell: ({ row }) => <RowActions rate={row.original} canEdit={canEdit} />,
     },
   ];
+}
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function ProcessRatesTable({
+  data,
+  canEdit,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: ProcessRateRow[];
+  canEdit: boolean;
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={processRatesColumns(canEdit)} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
 }

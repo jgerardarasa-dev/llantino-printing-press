@@ -18,6 +18,7 @@ import {
   getWasteRateByStage,
 } from "@/lib/data/analytics";
 import { getTopClientsByRevenue } from "@/lib/data/dashboard";
+import { buildCsv } from "@/lib/csv";
 import { formatCentavos } from "@/lib/format";
 import { ChartCard } from "@/components/dashboard/chart-card";
 import { DateRangeForm } from "@/components/dashboard/date-range-form";
@@ -25,6 +26,7 @@ import { KpiCard } from "@/components/dashboard/kpi-card";
 import { RevenueTrendChart } from "@/components/analytics/revenue-trend-chart";
 import { LeadTimeTrendChart } from "@/components/analytics/lead-time-trend-chart";
 import { WasteRateByStageChart } from "@/components/analytics/waste-rate-by-stage-chart";
+import { SimpleDataTable } from "@/components/shared/simple-data-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 /** No dedicated box-style label map exists yet (the box-spec list keeps its own local one) — humanize inline. */
@@ -120,15 +122,20 @@ export default async function AnalyticsPage({
         title="Revenue by month"
         description="Invoice subtotal (ex-VAT), non-cancelled invoices."
         csvFilename={`revenue-by-month-${range.from}-to-${range.to}.csv`}
-        data={revenueByMonth}
-        csvColumns={[
+        csv={buildCsv(revenueByMonth, [
           { header: "Month", accessor: (r) => r.month },
           { header: "Revenue (PHP)", accessor: (r) => (r.revenueCentavos / 100).toFixed(2) },
-        ]}
-        tableColumns={[
-          { header: "Month", cell: (r) => r.month },
-          { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
-        ]}
+        ])}
+        table={
+          <SimpleDataTable
+            data={revenueByMonth}
+            rowKey={(r) => r.month}
+            columns={[
+              { header: "Month", cell: (r) => r.month },
+              { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
+            ]}
+          />
+        }
       >
         <RevenueTrendChart data={revenueByMonth} />
       </ChartCard>
@@ -137,41 +144,56 @@ export default async function AnalyticsPage({
         <ChartCard
           title="Revenue by client"
           csvFilename={`revenue-by-client-${range.from}-to-${range.to}.csv`}
-          data={revenueByClient}
-          csvColumns={[
+          csv={buildCsv(revenueByClient, [
             { header: "Client", accessor: (r) => r.clientName ?? "Unspecified" },
             { header: "Revenue (PHP)", accessor: (r) => (r.revenueCentavos / 100).toFixed(2) },
-          ]}
-          tableColumns={[
-            { header: "Client", cell: (r) => r.clientName ?? "Unspecified" },
-            { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={revenueByClient}
+              rowKey={(r, i) => r.clientId ?? i}
+              columns={[
+                { header: "Client", cell: (r) => r.clientName ?? "Unspecified" },
+                { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
+              ]}
+            />
+          }
         />
         <ChartCard
           title="Revenue by box style"
           csvFilename={`revenue-by-box-style-${range.from}-to-${range.to}.csv`}
-          data={revenueByBoxStyle}
-          csvColumns={[
+          csv={buildCsv(revenueByBoxStyle, [
             { header: "Box style", accessor: (r) => humanize(r.label) },
             { header: "Revenue (PHP)", accessor: (r) => (r.revenueCentavos / 100).toFixed(2) },
-          ]}
-          tableColumns={[
-            { header: "Box style", cell: (r) => humanize(r.label) },
-            { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={revenueByBoxStyle}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Box style", cell: (r) => humanize(r.label) },
+                { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
+              ]}
+            />
+          }
         />
         <ChartCard
           title="Revenue by industry"
           csvFilename={`revenue-by-industry-${range.from}-to-${range.to}.csv`}
-          data={revenueByIndustry}
-          csvColumns={[
+          csv={buildCsv(revenueByIndustry, [
             { header: "Industry", accessor: (r) => r.label },
             { header: "Revenue (PHP)", accessor: (r) => (r.revenueCentavos / 100).toFixed(2) },
-          ]}
-          tableColumns={[
-            { header: "Industry", cell: (r) => r.label },
-            { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={revenueByIndustry}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Industry", cell: (r) => r.label },
+                { header: "Revenue", cell: (r) => formatCentavos(r.revenueCentavos), align: "right" },
+              ]}
+            />
+          }
         />
       </div>
 
@@ -180,37 +202,47 @@ export default async function AnalyticsPage({
           title="Quotation conversion rate by salesperson"
           description="Quotations decided (approved/rejected) in range."
           csvFilename={`conversion-by-salesperson-${range.from}-to-${range.to}.csv`}
-          data={conversionBySalesperson}
-          csvColumns={[
+          csv={buildCsv(conversionBySalesperson, [
             { header: "Salesperson", accessor: (r) => r.label },
             { header: "Won", accessor: (r) => r.won },
             { header: "Lost", accessor: (r) => r.lost },
             { header: "Conversion %", accessor: (r) => r.conversionRatePct ?? "" },
-          ]}
-          tableColumns={[
-            { header: "Salesperson", cell: (r) => r.label },
-            { header: "Won", cell: (r) => r.won, align: "right" },
-            { header: "Lost", cell: (r) => r.lost, align: "right" },
-            { header: "Rate", cell: (r) => (r.conversionRatePct !== null ? `${r.conversionRatePct}%` : "—"), align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={conversionBySalesperson}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Salesperson", cell: (r) => r.label },
+                { header: "Won", cell: (r) => r.won, align: "right" },
+                { header: "Lost", cell: (r) => r.lost, align: "right" },
+                { header: "Rate", cell: (r) => (r.conversionRatePct !== null ? `${r.conversionRatePct}%` : "—"), align: "right" },
+              ]}
+            />
+          }
         />
         <ChartCard
           title="Quotation conversion rate by lead source"
           description="Source = the originating lead's source, or the client's if not lead-sourced."
           csvFilename={`conversion-by-source-${range.from}-to-${range.to}.csv`}
-          data={conversionBySource}
-          csvColumns={[
+          csv={buildCsv(conversionBySource, [
             { header: "Source", accessor: (r) => r.label },
             { header: "Won", accessor: (r) => r.won },
             { header: "Lost", accessor: (r) => r.lost },
             { header: "Conversion %", accessor: (r) => r.conversionRatePct ?? "" },
-          ]}
-          tableColumns={[
-            { header: "Source", cell: (r) => r.label },
-            { header: "Won", cell: (r) => r.won, align: "right" },
-            { header: "Lost", cell: (r) => r.lost, align: "right" },
-            { header: "Rate", cell: (r) => (r.conversionRatePct !== null ? `${r.conversionRatePct}%` : "—"), align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={conversionBySource}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Source", cell: (r) => r.label },
+                { header: "Won", cell: (r) => r.won, align: "right" },
+                { header: "Lost", cell: (r) => r.lost, align: "right" },
+                { header: "Rate", cell: (r) => (r.conversionRatePct !== null ? `${r.conversionRatePct}%` : "—"), align: "right" },
+              ]}
+            />
+          }
         />
       </div>
 
@@ -218,17 +250,22 @@ export default async function AnalyticsPage({
         title="Average lead time trend"
         description="JO creation (order date) to actual delivery, trended by delivery month."
         csvFilename={`lead-time-trend-${range.from}-to-${range.to}.csv`}
-        data={leadTimeTrend}
-        csvColumns={[
+        csv={buildCsv(leadTimeTrend, [
           { header: "Month", accessor: (r) => r.month },
           { header: "Avg days", accessor: (r) => r.avgDays ?? "" },
           { header: "Sample size", accessor: (r) => r.sampleSize },
-        ]}
-        tableColumns={[
-          { header: "Month", cell: (r) => r.month },
-          { header: "Avg days", cell: (r) => (r.avgDays !== null ? `${r.avgDays}d` : "—"), align: "right" },
-          { header: "n", cell: (r) => r.sampleSize, align: "right" },
-        ]}
+        ])}
+        table={
+          <SimpleDataTable
+            data={leadTimeTrend}
+            rowKey={(r) => r.month}
+            columns={[
+              { header: "Month", cell: (r) => r.month },
+              { header: "Avg days", cell: (r) => (r.avgDays !== null ? `${r.avgDays}d` : "—"), align: "right" },
+              { header: "n", cell: (r) => r.sampleSize, align: "right" },
+            ]}
+          />
+        }
       >
         <LeadTimeTrendChart data={leadTimeTrend} />
       </ChartCard>
@@ -237,19 +274,24 @@ export default async function AnalyticsPage({
         <ChartCard
           title="Waste rate by stage (90d)"
           csvFilename="waste-rate-by-stage-90d.csv"
-          data={wasteByStage}
-          csvColumns={[
+          csv={buildCsv(wasteByStage, [
             { header: "Stage", accessor: (r) => r.label },
             { header: "Good output", accessor: (r) => r.goodOutput },
             { header: "Waste", accessor: (r) => r.wasteCount },
             { header: "Waste rate %", accessor: (r) => r.wasteRatePct },
-          ]}
-          tableColumns={[
-            { header: "Stage", cell: (r) => r.label },
-            { header: "Good", cell: (r) => r.goodOutput, align: "right" },
-            { header: "Waste", cell: (r) => r.wasteCount, align: "right" },
-            { header: "Rate", cell: (r) => `${r.wasteRatePct}%`, align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={wasteByStage}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Stage", cell: (r) => r.label },
+                { header: "Good", cell: (r) => r.goodOutput, align: "right" },
+                { header: "Waste", cell: (r) => r.wasteCount, align: "right" },
+                { header: "Rate", cell: (r) => `${r.wasteRatePct}%`, align: "right" },
+              ]}
+            />
+          }
         >
           <WasteRateByStageChart data={wasteByStage} />
         </ChartCard>
@@ -257,19 +299,24 @@ export default async function AnalyticsPage({
         <ChartCard
           title="Waste rate by operator (90d)"
           csvFilename="waste-rate-by-operator-90d.csv"
-          data={wasteByOperator}
-          csvColumns={[
+          csv={buildCsv(wasteByOperator, [
             { header: "Operator", accessor: (r) => r.label },
             { header: "Good output", accessor: (r) => r.goodOutput },
             { header: "Waste", accessor: (r) => r.wasteCount },
             { header: "Waste rate %", accessor: (r) => r.wasteRatePct },
-          ]}
-          tableColumns={[
-            { header: "Operator", cell: (r) => r.label },
-            { header: "Good", cell: (r) => r.goodOutput, align: "right" },
-            { header: "Waste", cell: (r) => r.wasteCount, align: "right" },
-            { header: "Rate", cell: (r) => `${r.wasteRatePct}%`, align: "right" },
-          ]}
+          ])}
+          table={
+            <SimpleDataTable
+              data={wasteByOperator}
+              rowKey={(r) => r.label}
+              columns={[
+                { header: "Operator", cell: (r) => r.label },
+                { header: "Good", cell: (r) => r.goodOutput, align: "right" },
+                { header: "Waste", cell: (r) => r.wasteCount, align: "right" },
+                { header: "Rate", cell: (r) => `${r.wasteRatePct}%`, align: "right" },
+              ]}
+            />
+          }
         />
       </div>
 

@@ -17,6 +17,7 @@ import {
   getTopClientsByRevenue,
 } from "@/lib/data/dashboard";
 import { formatCentavos } from "@/lib/format";
+import { buildCsv } from "@/lib/csv";
 import { AgingSummary } from "@/components/accounting/aging-summary";
 import { AccountingDashboard } from "@/components/dashboard/accounting-dashboard";
 import { AtRiskTable } from "@/components/dashboard/at-risk-table";
@@ -27,6 +28,7 @@ import { HrDashboard } from "@/components/dashboard/hr-dashboard";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { ProductionDashboard } from "@/components/dashboard/production-dashboard";
 import { SalesDashboard } from "@/components/dashboard/sales-dashboard";
+import { SimpleDataTable } from "@/components/shared/simple-data-table";
 import { StageFunnelChart } from "@/components/dashboard/stage-funnel-chart";
 import { StaffDashboard } from "@/components/dashboard/staff-dashboard";
 import { TopClientsSection } from "@/components/dashboard/top-clients-section";
@@ -100,17 +102,22 @@ export default async function DashboardPage({
             title="JO pipeline funnel"
             description="Count and peso value of job orders currently at each stage."
             csvFilename="jo-pipeline-funnel.csv"
-            data={funnel}
-            csvColumns={[
+            csv={buildCsv(funnel, [
               { header: "Stage", accessor: (r) => STAGE_LABELS[r.stage] },
               { header: "Count", accessor: (r) => r.count },
               { header: "Value (PHP)", accessor: (r) => (r.valueCentavos !== null ? (r.valueCentavos / 100).toFixed(2) : "") },
-            ]}
-            tableColumns={[
-              { header: "Stage", cell: (r) => STAGE_LABELS[r.stage] },
-              { header: "Count", cell: (r) => r.count, align: "right" },
-              { header: "Value", cell: (r) => (r.valueCentavos !== null ? formatCentavos(r.valueCentavos) : "—"), align: "right" },
-            ]}
+            ])}
+            table={
+              <SimpleDataTable
+                data={funnel}
+                rowKey={(r) => r.stage}
+                columns={[
+                  { header: "Stage", cell: (r) => STAGE_LABELS[r.stage] },
+                  { header: "Count", cell: (r) => r.count, align: "right" },
+                  { header: "Value", cell: (r) => (r.valueCentavos !== null ? formatCentavos(r.valueCentavos) : "—"), align: "right" },
+                ]}
+              />
+            }
           >
             <StageFunnelChart data={funnel} />
           </ChartCard>
@@ -119,17 +126,22 @@ export default async function DashboardPage({
             title="Bottleneck — avg hours per stage (90d)"
             description="Where job orders spend the most time before moving on, from jo_stage_history."
             csvFilename="jo-bottleneck-90d.csv"
-            data={bottleneck}
-            csvColumns={[
+            csv={buildCsv(bottleneck, [
               { header: "Stage", accessor: (r) => STAGE_LABELS[r.stage] },
               { header: "Avg hours", accessor: (r) => r.avgHours },
               { header: "Sample size", accessor: (r) => r.sampleSize },
-            ]}
-            tableColumns={[
-              { header: "Stage", cell: (r) => STAGE_LABELS[r.stage] },
-              { header: "Avg hours", cell: (r) => `${r.avgHours}h`, align: "right" },
-              { header: "n", cell: (r) => r.sampleSize, align: "right" },
-            ]}
+            ])}
+            table={
+              <SimpleDataTable
+                data={bottleneck}
+                rowKey={(r) => r.stage}
+                columns={[
+                  { header: "Stage", cell: (r) => STAGE_LABELS[r.stage] },
+                  { header: "Avg hours", cell: (r) => `${r.avgHours}h`, align: "right" },
+                  { header: "n", cell: (r) => r.sampleSize, align: "right" },
+                ]}
+              />
+            }
           >
             <BottleneckChart data={bottleneck} />
           </ChartCard>

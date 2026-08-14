@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 
 import type { ClientListRow } from "@/lib/data/clients";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 import { formatDate } from "@/lib/format";
 
 const TIER_LABEL: Record<string, string> = {
@@ -70,3 +71,21 @@ export const clientColumns: ColumnDef<ClientListRow, unknown>[] = [
     ),
   },
 ];
+
+/**
+ * Wraps DataTable + clientColumns so the page (a Server Component) only
+ * ever passes plain data across the boundary — column definitions carry
+ * functions, which can't be passed as a prop from Server to Client (see
+ * the nav-icons fix's doc comment for the full rule).
+ */
+export function ClientsTable({
+  data,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: ClientListRow[];
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={clientColumns} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
+}

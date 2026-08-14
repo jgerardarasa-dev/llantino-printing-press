@@ -6,6 +6,7 @@ import type { TaskRow } from "@/lib/data/tasks";
 import { TASK_PRIORITY_VARIANT, TASK_STATUS_COLOURS, TASK_STATUS_LABELS, type TaskStatus } from "@/lib/constants/task-status";
 import { formatDate } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { DataTable } from "@/components/shared/data-table";
 import { cn } from "@/lib/utils";
 
 export const taskColumns: ColumnDef<TaskRow, unknown>[] = [
@@ -34,3 +35,8 @@ export const taskColumns: ColumnDef<TaskRow, unknown>[] = [
     cell: ({ row }) => <span className="tabular-nums text-muted-foreground">{formatDate(row.original.dueDate)}</span>,
   },
 ];
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function TasksTable({ data, searchPlaceholder }: { data: TaskRow[]; searchPlaceholder?: string }) {
+  return <DataTable columns={taskColumns} data={data} searchPlaceholder={searchPlaceholder} />;
+}

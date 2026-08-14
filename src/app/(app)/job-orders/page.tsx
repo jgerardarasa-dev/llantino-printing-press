@@ -3,8 +3,7 @@ import { ClipboardList } from "lucide-react";
 
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { listJobOrders } from "@/lib/data/job-orders";
-import { DataTable } from "@/components/shared/data-table";
-import { jobOrderColumns } from "./columns";
+import { JobOrdersTable } from "./columns";
 
 export default async function JobOrdersPage() {
   const user = await getCurrentUser();
@@ -30,8 +29,7 @@ export default async function JobOrdersPage() {
         </p>
       </div>
 
-      <DataTable
-        columns={jobOrderColumns}
+      <JobOrdersTable
         data={jobOrderRows}
         searchPlaceholder="Search job orders..."
         emptyState={

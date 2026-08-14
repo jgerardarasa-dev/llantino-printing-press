@@ -9,6 +9,7 @@ import { softDeleteMaterial } from "@/lib/actions/material-actions";
 import { formatCentavos } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DataTable } from "@/components/shared/data-table";
 import type { MaterialRow } from "@/lib/data/materials";
 import { MaterialFormSheet } from "./material-form-sheet";
 
@@ -92,4 +93,19 @@ export function materialsColumns(canEdit: boolean): ColumnDef<MaterialRow, unkno
       cell: ({ row }) => <RowActions material={row.original} canEdit={canEdit} />,
     },
   ];
+}
+
+/** See ClientsTable's doc comment (clients/columns.tsx) for why this wrapper exists. */
+export function MaterialsTable({
+  data,
+  canEdit,
+  searchPlaceholder,
+  emptyState,
+}: {
+  data: MaterialRow[];
+  canEdit: boolean;
+  searchPlaceholder?: string;
+  emptyState?: React.ReactNode;
+}) {
+  return <DataTable columns={materialsColumns(canEdit)} data={data} searchPlaceholder={searchPlaceholder} emptyState={emptyState} />;
 }

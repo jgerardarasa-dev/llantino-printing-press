@@ -6,8 +6,7 @@ import { ACCOUNTING_WRITE_ROLES, EXPENSE_READ_ROLES } from "@/lib/auth/permissio
 import { listExpenses } from "@/lib/data/accounting";
 import { listJobOrderOptions } from "@/lib/data/job-orders";
 import { formatCentavos } from "@/lib/format";
-import { DataTable } from "@/components/shared/data-table";
-import { expenseColumns } from "./columns";
+import { ExpensesTable } from "./columns";
 import { ExpenseFormDialog } from "./expense-form-dialog";
 
 export default async function ExpensesPage() {
@@ -40,8 +39,7 @@ export default async function ExpensesPage() {
         {canEdit && <ExpenseFormDialog jobOrders={jobOrderOptions} />}
       </div>
 
-      <DataTable
-        columns={expenseColumns}
+      <ExpensesTable
         data={expenseRows}
         searchPlaceholder="Search expenses..."
         emptyState={<span className="text-sm text-muted-foreground">No expenses recorded yet.</span>}

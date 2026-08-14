@@ -5,9 +5,8 @@ import { FileText, Plus } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth/get-current-user";
 import { COMMERCIAL_ROLES, CRM_OWNER_ROLES } from "@/lib/auth/permissions";
 import { listQuotations } from "@/lib/data/quotations";
-import { DataTable } from "@/components/shared/data-table";
 import { Button } from "@/components/ui/button";
-import { quotationColumns } from "./columns";
+import { QuotationsTable } from "./columns";
 
 export default async function QuotationsPage() {
   const user = await getCurrentUser();
@@ -43,8 +42,7 @@ export default async function QuotationsPage() {
         )}
       </div>
 
-      <DataTable
-        columns={quotationColumns}
+      <QuotationsTable
         data={quotationRows}
         searchPlaceholder="Search quotations..."
         emptyState={
